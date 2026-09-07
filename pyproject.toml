@@ -6,7 +6,20 @@ readme = "README.md"
 license = "MIT"
 authors = [{ name = "Emirhan Bahçacı" }]
 requires-python = ">=3.11"
+keywords = ["kvkk", "pii", "anonymization", "turkish", "privacy", "gdpr"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: Turkish",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Text Processing :: Linguistic",
+]
 dependencies = []
+
+[project.urls]
+Repository = "https://github.com/parttimegod/kvkk-maskeleme"
+Issues = "https://github.com/parttimegod/kvkk-maskeleme/issues"
 
 [project.scripts]
 kvkk-maskeleme = "kvkk_maskeleme.cli:main"

@@ -105,13 +105,27 @@ olma riskini ölçmüyor.
 
 ## Kurulum
 
+Kurulum gerekmiyor:
+
 ```bash
-git clone https://github.com/parttimegod/kvkk-maskeleme
-cd kvkk-maskeleme
-uv sync
+uvx --from git+https://github.com/parttimegod/kvkk-maskeleme kvkk-maskeleme dosya.txt
 ```
 
-Bağımlılığı yok; yalnızca standart kütüphane.
+Kalıcı kurmak isterseniz:
+
+```bash
+uv tool install git+https://github.com/parttimegod/kvkk-maskeleme
+kvkk-maskeleme dosya.txt
+```
+
+Kütüphane olarak:
+
+```bash
+uv add git+https://github.com/parttimegod/kvkk-maskeleme
+```
+
+Gereksinimler: Python 3.11+ ve [uv](https://docs.astral.sh/uv/). Paketin
+kendisinin bağımlılığı yok, yalnızca standart kütüphane.
 
 ## Komut satırı
 
