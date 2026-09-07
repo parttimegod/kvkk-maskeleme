@@ -197,7 +197,9 @@ Bu alandaki açık kaynak projelerin hiçbiri ne kadar iyi çalıştığını
 söylemiyor. "Kişisel verileri maskeler" cümlesi ölçülmeden bir şey ifade
 etmiyor; %60 recall'la çalışan bir araç çalışmıyor demektir.
 
-Sentetik belgeler etiketli olduğu için gerçek recall hesaplanabiliyor:
+Sentetik belgeler etiketli olduğu için gerçek recall hesaplanabiliyor.
+Ayrıca kişisel veri içermeyen adliye cümlelerinden oluşan bir küme var;
+sözlük katmanı onlardan birini işaretlerse yanlış pozitif sayılıyor.
 
 ```python
 from kvkk_maskeleme.olcum import calistir
@@ -205,16 +207,29 @@ print(calistir(20).tablo())
 ```
 
 ```
-tür         beklenen  bulunan   recall
---------------------------------------
-IBAN              20       20  100.0%
-PLAKA             20       20  100.0%
-TC                40       40  100.0%
-TELEFON           40       40  100.0%
-VKN               20       20  100.0%
+TANIMLAYICILAR (maskeleniyor)
+tür                     beklenen  bulunan   recall
+--------------------------------------------------
+IBAN                          20       20  100.0%
+PLAKA                         20       20  100.0%
+TC                            60       60  100.0%
+TELEFON                       40       40  100.0%
+VKN                           20       20  100.0%
 
-belge: 40
+ÖZEL NİTELİKLİ (işaretleniyor)
+tür                     beklenen  bulunan   recall
+--------------------------------------------------
+CEZA_MAHKUMIYETI              20       20  100.0%
+DERNEK_VAKIF_SENDIKA          20       20  100.0%
+SAGLIK                        20       20  100.0%
+
+belge: 80
+temiz metin: 15, yanlış pozitif: 0 (0.0% belgede)
 ```
+
+Son satır cömert sözlüğün bedelini ölçüyor. Temiz cümleler bilinen
+tuzakları barındırıyor: *"tanık dinlenmesi"*, *"Aydın ili"*, *"dinlenme
+salonu"*. Bunlar işaretlenirse araç adliyede kullanılamaz hale gelir.
 
 Sağlayıcı verilmediğinde isim ve adres ölçüme katılmıyor; desen
 katmanının onları bulması zaten beklenmiyor, ölçüme katmak sonucu

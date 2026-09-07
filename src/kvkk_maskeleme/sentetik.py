@@ -155,12 +155,47 @@ def bilirkisi_raporu(tohum: int = 0) -> Belge:
     ])
 
 
+# Kişisel veri de özel nitelikli veri de İÇERMEYEN adliye cümleleri.
+# Sözlük katmanı bunlardan herhangi birini işaretlerse yanlış pozitif.
+# Cömert bir sözlük kaçınılmaz olarak fazladan işaretler; buradaki amaç
+# o fazlalığın ölçülebilir olması.
+TEMIZ_CUMLELER = (
+    "Tanığın dinlenmesine karar verildi.",
+    "Duruşmada tanıklar dinlendi ve beyanları tutanağa geçirildi.",
+    "Dosyanın incelenmesi için duruşma ertelenmiştir.",
+    "Bilirkişi raporuna itiraz süresi içinde beyanda bulunulmamıştır.",
+    "Mahkememizce yapılan yargılama sonucunda karar verilmiştir.",
+    "Gerekçeli kararın taraflara tebliğine karar verildi.",
+    "Dava dilekçesinde belirtilen hususlar değerlendirilmiştir.",
+    "Aydın ilinde bulunan taşınmazın kaydı celp edilmiştir.",
+    "Keşif yapılmasına ve masrafın davacıdan alınmasına karar verildi.",
+    "Yargıtay içtihatları doğrultusunda inceleme yapılmıştır.",
+    "Vekaletname dosyaya sunulmuş olup usulüne uygundur.",
+    "Harç ve masrafların davalıdan tahsiline karar verilmiştir.",
+    "Dinlenme salonunda bekleyen taraflara duyuru yapıldı.",
+    "Talebin reddine, kararın taraflara bildirilmesine karar verildi.",
+    "Süresi içinde istinaf yoluna başvurulabileceği hatırlatıldı.",
+)
+
+
+def temiz_belgeler() -> list[Belge]:
+    """Etiketsiz temiz cümleler; yanlış pozitif ölçümü için."""
+    return [Belge(c) for c in TEMIZ_CUMLELER]
+
+
 def ornekler(adet: int = 20) -> list[Belge]:
-    """Ölçüm için belge kümesi."""
+    """Ölçüm için belge kümesi.
+
+    Dört tür: iki tanesi tanımlayıcı ağırlıklı, biri özel nitelikli
+    veri içeriyor, biri hiçbiri -- sonuncusu yanlış pozitif tuzaklarını
+    barındırıyor.
+    """
     belgeler = []
     for i in range(adet):
         belgeler.append(dilekce(i))
         belgeler.append(bilirkisi_raporu(i))
+        belgeler.append(ceza_dosyasi(i))
+        belgeler.append(durusma_tutanagi(i))
     return belgeler
 
 
@@ -179,9 +214,52 @@ def ceza_dosyasi(tohum: int = 0) -> Belge:
         ("ŞÜPHELİ   : ", None), (ad, "AD"),
         (" (T.C. Kimlik No: ", None), (tc, "TC"), (")", None),
         (f"\nSORUŞTURMA NO: 2026/{r.randint(1000, 9999)}\n\n", None),
-        ("Şüphelinin adli sicil kaydında daha önce uyuşturucu madde "
-         "kullanmaktan mahkûmiyeti bulunduğu tespit edilmiştir. "
-         "Şüphelinin kronik bir rahatsızlığı nedeniyle sürekli ilaç "
-         "kullandığı, bu nedenle hastane raporu sunduğu anlaşılmıştır. "
-         "Sendika üyeliği bulunduğu beyan edilmiştir.\n", None),
+        ("Şüphelinin ", None),
+        ("adli sicil kaydında daha önce uyuşturucu madde kullanmaktan "
+         "mahkûmiyeti bulunduğu", "CEZA_MAHKUMIYETI"),
+        (" tespit edilmiştir. Şüphelinin ", None),
+        ("kronik bir rahatsızlığı nedeniyle sürekli ilaç kullandığı",
+         "SAGLIK"),
+        (", bu nedenle hastane raporu sunduğu anlaşılmıştır. ", None),
+        ("Sendika üyeliği bulunduğu", "DERNEK_VAKIF_SENDIKA"),
+        (" beyan edilmiştir.\n", None),
+    ])
+
+
+def saglik_raporu(tohum: int = 0) -> Belge:
+    """Sağlık verisi ağırlıklı belge."""
+    r = random.Random(tohum + 3000)
+    ad, tc = rastgele_ad(r), rastgele_tc(r)
+
+    return _yerlestir([
+        ("ADLİ TIP KURUMU RAPORU\n\n", None),
+        ("İLGİLİ    : ", None), (ad, "AD"),
+        (" (T.C. Kimlik No: ", None), (tc, "TC"), (")", None),
+        (f"\nRAPOR NO  : 2026/{r.randint(100, 999)}\n\n", None),
+        ("Yapılan muayenede ilgilinin ", None),
+        ("kalıcı iş göremezlik durumu bulunduğu, tedavisinin sürdüğü",
+         "SAGLIK"),
+        (" tespit edilmiştir. Ayrıca ", None),
+        ("genetik yatkınlığa dair DNA incelemesi", "GENETIK"),
+        (" yapılmıştır.\n", None),
+    ])
+
+
+def durusma_tutanagi(tohum: int = 0) -> Belge:
+    """Özel nitelikli veri İÇERMEYEN tutanak.
+
+    Yanlış pozitif tuzaklarını bilerek barındırıyor: "tanık dinlenmesi"
+    ifadesi sözlükteki "din" kökünü, "tanık" ise "tanı" kökünü tetikleme
+    riski taşıyor. Bu belge işaretlenirse araç adliyede kullanılamaz.
+    """
+    r = random.Random(tohum + 4000)
+    ad, tanik = rastgele_ad(r), rastgele_ad(r)
+
+    return _yerlestir([
+        (f"DURUŞMA TUTANAĞI\n\nESAS NO: 2026/{r.randint(100, 999)}\n\n", None),
+        ("Davacı ", None), (ad, "AD"),
+        (" duruşmada hazır. Tanık ", None), (tanik, "AD"),
+        (" dinlenmek üzere çağrıldı. Tanığın dinlenmesine karar verildi. "
+         "Beyanı alındı ve tutanağa geçirildi. Dosyanın incelenmesi için "
+         "duruşma ertelenmiştir.\n", None),
     ])

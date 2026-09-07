@@ -67,7 +67,7 @@ def test_bozuk_cevap_sayiliyor():
 
 def test_belge_sayisi_dogru():
     rapor = calistir(7)
-    assert rapor.belge_sayisi == 14  # tür başına bir belge
+    assert rapor.belge_sayisi == 28  # dört belge türü
 
 
 def test_tablo_basiliyor():
@@ -84,3 +84,52 @@ def test_bos_kume():
     assert rapor.belge_sayisi == 0
     assert rapor.turler == {}
     assert "belge: 0" in rapor.tablo()
+
+
+def test_ozel_nitelikli_recall_olculuyor():
+    rapor = calistir(5)
+
+    assert rapor.ozel
+    for kategori, s in rapor.ozel.items():
+        assert s.recall == 1.0, f"{kategori} kaçırdı"
+
+
+def test_temiz_metinde_yanlis_pozitif_yok():
+    """Sözlük cömert ama gürültülü olmamalı.
+
+    Temiz cümleler bilinen tuzakları içeriyor: "tanık dinlenmesi",
+    "Aydın ili", "dinlenme salonu".
+    """
+    rapor = calistir(3)
+
+    assert rapor.temiz_belge_sayisi > 0
+    assert rapor.yanlis_pozitifler == [], [
+        (y.kategori, y.kanit) for y in rapor.yanlis_pozitifler
+    ]
+    assert rapor.yanlis_pozitif_orani == 0.0
+
+
+def test_yanlis_pozitif_kaydediliyor():
+    """Ölçüm gerçekten sayıyor mu -- kirli bir metni temiz diye verelim."""
+    from kvkk_maskeleme.sentetik import Belge
+
+    rapor = olc([], temizler=[Belge("Sanığın sabıka kaydı vardır.")])
+
+    assert rapor.yanlis_pozitifler
+    assert rapor.yanlis_pozitifler[0].kategori == "CEZA_MAHKUMIYETI"
+    assert rapor.yanlis_pozitif_orani == 1.0
+
+
+def test_tabloda_iki_blok_var():
+    tablo = calistir(3).tablo()
+
+    assert "TANIMLAYICILAR" in tablo
+    assert "ÖZEL NİTELİKLİ" in tablo
+    assert "yanlış pozitif" in tablo
+
+
+def test_ozel_nitelikli_tanimlayici_olcumune_karismiyor():
+    """Özel nitelikli etiketler maskeleme recall'ına girmemeli."""
+    rapor = calistir(3)
+
+    assert not (set(rapor.turler) & set(rapor.ozel))
