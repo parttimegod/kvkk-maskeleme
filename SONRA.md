@@ -10,6 +10,19 @@ Aklıma gelen ama şimdi yapmayacağım şeyler.
 - Yerel model üzerinden, veri makineden çıkmadan.
 - Sentetik kümede isim recall'ını ölç; deterministik katmanla karşılaştır.
 
+## KVKK boşlukları (bilinen, kritik)
+- Özel nitelikli veri (md. 6) hiç tespit edilmiyor: sağlık, ceza
+  mahkûmiyeti, din, etnik köken, sendika üyeliği, cinsel hayat.
+  Bunlar tanımlayıcı değil bağlam -- "sabıkalıdır" cümlesi tek başına
+  veri. Model katmanı için ayrı bir görev, ayrı istem gerekiyor.
+- Adli belgelerde ceza mahkûmiyeti verisi ana içerik. Bu boşluk
+  kapanmadan araç adli bağlamda "temizler" diye sunulmamalı.
+- Yeniden tanımlanma riski ölçülmüyor. Doğrudan tanımlayıcı gitse bile
+  dava türü + tarih + mahkeme + olay ayrıntısı kişiyi bulunabilir
+  kılabiliyor. k-anonimlik benzeri bir ölçüt düşünülebilir.
+- Gerçek anonimleştirme yolu yok. Eşleme silinse bile geri kalan metnin
+  değerlendirilmesi gerekiyor; şu an araç bunu yapmıyor.
+
 ## Tespit
 - Pasaport ve sürücü belgesi numarası.
 - SGK sicil numarası.

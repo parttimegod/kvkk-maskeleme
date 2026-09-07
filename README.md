@@ -1,8 +1,12 @@
 # turkish-anonymizer
 
-Türkçe metinlerde kişisel veri tespiti ve maskeleme. KVKK kapsamındaki
-belgeleri işlemeden önce, özellikle bulut tabanlı bir modele göndermeden
-önce kullanılmak üzere.
+Türkçe metinlerde kişisel veri tespiti ve **maskeleme**. Belgeleri
+işlemeden önce, özellikle bulut tabanlı bir modele göndermeden önce
+doğrudan tanımlayıcıları yer tutucuyla değiştirir.
+
+> **Bu araç veriyi anonim hale getirmez.** Maskeleme geri
+> döndürülebilir olduğu için çıktı KVKK anlamında hâlâ kişisel veridir.
+> Ayrıntı için [KVKK kapsamı](#kvkk-kapsamı) bölümüne bakın.
 
 ## Durum
 
@@ -22,6 +26,58 @@ ve test edildi; `OllamaSaglayici` verildiğinde devreye giriyor.
 | **İsim** | altyapı hazır | model katmanı |
 | **Adres** | altyapı hazır | model katmanı |
 | **Kurum** | altyapı hazır | model katmanı |
+
+## KVKK kapsamı
+
+Bu bölüm aracın ne yapıp ne yapmadığını netleştirmek için var. Yanlış
+anlaşılması uyum açığı doğurur.
+
+### Maskeleme, anonimleştirme değildir
+
+KVKK'da anonim hale getirme, verinin başka verilerle eşleştirilse dahi
+hiçbir surette bir kişiyle ilişkilendirilememesi demek. Anonim hale
+getirilmiş veri kanun kapsamından çıkar.
+
+Bu araç **takma adlaştırma / maskeleme** yapıyor: `<TC_1>` yer tutucusu
+ve yerelde duran bir eşleme tablosu. Eşleme varken işlem geri
+alınabiliyor, dolayısıyla:
+
+- Çıktı **hâlâ kişisel veridir**
+- Aydınlatma, saklama, güvenlik yükümlülükleri **devam eder**
+- Veri KVKK kapsamından **çıkmaz**
+
+Kazanç şurada: veri bulut tabanlı bir modele gönderilirken doğrudan
+tanımlayıcılar dışarı çıkmıyor. Bu risk azaltmadır, muafiyet değildir.
+
+Gerçekten anonimleştirmek istiyorsanız eşleme tablosunu silin ve
+`geri_al` yolunu kapatın — ama o zaman bile yeniden tanımlanma riski
+için metnin geri kalanını değerlendirmeniz gerekir.
+
+### Özel nitelikli veriler kapsam dışında
+
+KVKK madde 6'ya göre özel nitelikli kişisel veriler şunlar: ırk, etnik
+köken, siyasi düşünce, felsefi inanç, din, mezhep veya diğer inançlar,
+kılık ve kıyafet, dernek/vakıf/sendika üyeliği, sağlık, cinsel hayat,
+**ceza mahkûmiyeti ve güvenlik tedbirleri**, biyometrik ve genetik veri.
+
+**Bu araç bunların hiçbirini tespit etmiyor.**
+
+Sebebi teknik: özel nitelikli veriler tanımlayıcı değil, bağlamdır.
+"Sanık daha önce uyuşturucu kullanmaktan sabıkalıdır" cümlesi bir ceza
+mahkûmiyeti verisidir ama içinde maskelenecek bir alan yoktur — cümlenin
+kendisi veridir. Desenle de, ifade çıkarmayla da çözülmez.
+
+Adli, tıbbi veya insan kaynakları belgeleriyle çalışıyorsanız bu boşluk
+sizin için kritik olabilir. Aracın çıktısını "temizlendi" diye
+değerlendirmeyin.
+
+### Yeniden tanımlanma
+
+Doğrudan tanımlayıcılar kaldırılsa bile bir belge kişiyi
+tanımlayabilir: dava türü, tarih, mahkeme ve olayın kendine özgü
+ayrıntıları birleşince kimlik ortaya çıkabilir. KVKK'nın tanımı
+"kimliği belirli **veya belirlenebilir**" diyor. Bu araç belirlenebilir
+olma riskini ölçmüyor.
 
 ## Kurulum
 
