@@ -6,9 +6,9 @@ belgeleri işlemeden önce, özellikle bulut tabanlı bir modele göndermeden
 
 ## Durum
 
-Aşama 1 tamam: yapısal kimlikler. **İsim ve adres henüz yok** — desenle
-bulunamıyorlar, yerel model katmanı gerekiyor. Aşağıdaki örnekte bu
-eksik açıkça görünüyor.
+Desen katmanı çalışıyor. Model katmanının **altyapısı hazır, modeli
+bağlı değil** — arayüz, cevap çözümleme, birleştirme ve ölçüm yazıldı
+ve test edildi; `OllamaSaglayici` verildiğinde devreye giriyor.
 
 | Tür | Durum | Yöntem |
 |---|---|---|
@@ -19,8 +19,9 @@ eksik açıkça görünüyor.
 | Telefon | ✓ | desen |
 | Plaka | ✓ | desen |
 | E-posta | ✓ | desen |
-| **İsim** | ✗ | model katmanı gerekiyor |
-| **Adres** | ✗ | model katmanı gerekiyor |
+| **İsim** | altyapı hazır | model katmanı |
+| **Adres** | altyapı hazır | model katmanı |
+| **Kurum** | altyapı hazır | model katmanı |
 
 ## Kurulum
 
@@ -86,6 +87,61 @@ maskele(metin, dogrula=False)   # yalnızca test içindir
 **Geri döndürülebilir.** Eşleme tablosu yerelde kalıyor, işlem
 zincirinden sonra metin eski haline dönebiliyor. Eşleme tablosu kişisel
 veri içerir; metinle birlikte hiçbir yere gönderilmemeli.
+
+## Model katmanı
+
+İsim ve adres desenle bulunamıyor. Türkçe adların bir kısmı günlük
+kelimeyle çakışıyor — *Deniz, Umut, Şafak, Barış, Güneş* — yani "büyük
+harfle başlayan kelime" kuralı hem kaçırıyor hem yanlış yakalıyor.
+
+```python
+from turkish_anonymizer import maskele, OllamaSaglayici
+
+sonuc = maskele(metin, saglayici=OllamaSaglayici(model="gemma4-abl-16k"))
+sonuc.uydurma              # modelin metinde olmayan ifadeleri
+sonuc.model_bicim_hatasi   # cevap JSON değilse
+```
+
+Sağlayıcı verilmezse yalnızca desen katmanı çalışır. Arayüz tek metotluk
+bir protokol, başka bir sunucuya bağlamak kolay.
+
+**Modelden konum istemiyoruz, metin istiyoruz.** Modeller karakter
+saymayı beceremiyor; "45. karakterden 56'ya" dediğinde çoğu zaman
+yanlış oluyor. Bulduğu ifadeyi aynen yazmasını istiyoruz, konumu biz
+buluyoruz. Yan faydası: metinde geçmeyen bir ifade dönerse uydurma
+olduğu anlaşılıyor ve sayılıyor.
+
+Çakışmada desen kazanıyor — kontrol hanesiyle doğrulanmış bir kimlik
+numarası, modelin "bu bir ad" tahmininden güvenilir.
+
+## Ölçüm
+
+Bu alandaki açık kaynak projelerin hiçbiri ne kadar iyi çalıştığını
+söylemiyor. "Kişisel verileri maskeler" cümlesi ölçülmeden bir şey ifade
+etmiyor; %60 recall'la çalışan bir araç çalışmıyor demektir.
+
+Sentetik belgeler etiketli olduğu için gerçek recall hesaplanabiliyor:
+
+```python
+from turkish_anonymizer.olcum import calistir
+print(calistir(20).tablo())
+```
+
+```
+tür         beklenen  bulunan   recall
+--------------------------------------
+IBAN              20       20  100.0%
+PLAKA             20       20  100.0%
+TC                40       40  100.0%
+TELEFON           40       40  100.0%
+VKN               20       20  100.0%
+
+belge: 40
+```
+
+Sağlayıcı verilmediğinde isim ve adres ölçüme katılmıyor; desen
+katmanının onları bulması zaten beklenmiyor, ölçüme katmak sonucu
+haksız yere düşürür.
 
 ## Test verisi
 

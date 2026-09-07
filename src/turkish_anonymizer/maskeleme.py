@@ -16,6 +16,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from .model import Saglayici
+from .model import bul as model_bul
 from .tespit import Bulgu, bul
 
 
@@ -28,6 +30,8 @@ class Sonuc:
     metin: str
     eslesme: dict[str, str] = field(default_factory=dict)
     bulgular: list[Bulgu] = field(default_factory=list)
+    uydurma: list[str] = field(default_factory=list)
+    model_bicim_hatasi: bool = False
 
     def ozet(self) -> dict[str, int]:
         sayim: dict[str, int] = {}
@@ -36,13 +40,40 @@ class Sonuc:
         return sayim
 
 
-def maskele(metin: str, dogrula: bool = True) -> Sonuc:
-    """Yapısal kişisel verileri yer tutucuyla değiştirir.
+def _birlestir(kesin: list[Bulgu], model: list[Bulgu]) -> list[Bulgu]:
+    """Desen bulgularıyla model bulgularını birleştirir.
+
+    Çakışmada desen kazanıyor: kontrol hanesiyle doğrulanmış bir kimlik
+    numarası, modelin "bu bir ad" tahmininden daha güvenilir.
+    """
+    sonuc = list(kesin)
+    for m in model:
+        if not any(m.baslangic < k.bitis and k.baslangic < m.bitis for k in sonuc):
+            sonuc.append(m)
+    return sorted(sonuc, key=lambda b: b.baslangic)
+
+
+def maskele(
+    metin: str,
+    dogrula: bool = True,
+    saglayici: Saglayici | None = None,
+) -> Sonuc:
+    """Kişisel verileri yer tutucuyla değiştirir.
+
+    saglayici verilirse isim, adres ve kurum için model katmanı da
+    çalışır. Verilmezse yalnızca yapısal kimlikler maskelenir.
 
     dogrula=False yalnızca test içindir. Üretimde kapatma: doğrulama
     kapalıyken sızıntı sessizce geçer.
     """
     bulgular = bul(metin)
+    uydurma: list[str] = []
+    bicim_hatasi = False
+
+    if saglayici is not None:
+        ms = model_bul(metin, saglayici)
+        bulgular = _birlestir(bulgular, ms.bulgular)
+        uydurma, bicim_hatasi = ms.uydurma, ms.bicim_hatasi
 
     # Aynı değer her yerde aynı yer tutucuyu alsın.
     yer_tutucu: dict[tuple[str, str], str] = {}
@@ -60,7 +91,13 @@ def maskele(metin: str, dogrula: bool = True) -> Sonuc:
     yeni = "".join(parcalar)
 
     eslesme = {v: k[1] for k, v in yer_tutucu.items()}
-    sonuc = Sonuc(metin=yeni, eslesme=eslesme, bulgular=bulgular)
+    sonuc = Sonuc(
+        metin=yeni,
+        eslesme=eslesme,
+        bulgular=bulgular,
+        uydurma=uydurma,
+        model_bicim_hatasi=bicim_hatasi,
+    )
 
     if dogrula:
         dogrula_temiz(yeni)
@@ -68,7 +105,11 @@ def maskele(metin: str, dogrula: bool = True) -> Sonuc:
 
 
 def dogrula_temiz(metin: str) -> None:
-    """Metinde kişisel veri kalmadığını doğrular, kalmışsa hata verir."""
+    """Metinde yapısal kişisel veri kalmadığını doğrular.
+
+    Yalnızca desen katmanını kapsıyor. İsim ve adres için aynı güvence
+    yok: doğrulamak ikinci bir model geçişi gerektirir -- bkz. SONRA.md
+    """
     kalan = bul(metin)
     if kalan:
         ornek = ", ".join(f"{b.tur}" for b in kalan[:3])
