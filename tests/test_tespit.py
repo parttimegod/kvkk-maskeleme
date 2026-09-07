@@ -125,3 +125,67 @@ def test_bilirkisi_raporunda_plaka_ve_vkn():
     bulunan = turlere_gore(bilirkisi_raporu(3).metin)
     assert "PLAKA" in bulunan
     assert "VKN" in bulunan
+
+
+@pytest.mark.parametrize("bicim", ["{a} {b} {c} {d}", "{a}.{b}.{c}{d}", "{a}-{b}{c}{d}"])
+def test_ayracli_tc_bulunuyor(bicim):
+    """İnsanlar kimlik numarasını boşlukla, noktayla, tireyle yazıyor."""
+    no = rastgele_tc(random.Random(0))
+    yazim = bicim.format(a=no[:3], b=no[3:6], c=no[6:9], d=no[9:])
+    (b,) = [x for x in bul(f"Kimlik: {yazim}") if x.tur == "TC"]
+
+    assert b.kaynak == "ayrac"
+
+
+def test_ayracli_iban_bulunuyor():
+    iban = rastgele_iban(random.Random(1))
+    bosluklu = " ".join(iban[i : i + 4] for i in range(0, len(iban), 4))
+
+    assert any(b.tur == "IBAN" for b in bul(f"Hesap: {bosluklu}"))
+
+
+@pytest.mark.parametrize("harf, rakam", [("O", "0"), ("l", "1"), ("S", "5"), ("B", "8")])
+def test_ocr_bozulmasi_onariliyor(harf, rakam):
+    """Taranmış belgede OCR harfle rakamı karıştırıyor."""
+    no = rastgele_tc(random.Random(2))
+    if rakam not in no:
+        pytest.skip(f"örnek numarada {rakam} yok")
+
+    bozuk = no.replace(rakam, harf)
+    (b,) = [x for x in bul(f"Kimlik: {bozuk}") if x.tur == "TC"]
+
+    assert b.kaynak == "ocr"
+    assert b.deger == bozuk  # özgün, bozuk hâli maskelenmeli
+
+
+def test_ocr_onarimi_dogrulanmadan_kabul_edilmiyor():
+    """Onarım tahmin değil: düzeltilmiş hâl kontrol hanesinden geçmeli."""
+    assert not [b for b in bul("Kod: OOOOOOOOOOO") if b.tur == "TC"]
+    assert not [b for b in bul("Kod: SSSSSSSSSSS") if b.tur == "TC"]
+
+
+def test_harf_agirlikli_dizi_kimlik_sanilmiyor():
+    """Sıradan kelimeler rakama çevrilip uydurma kimlik üretilmemeli."""
+    assert not [b for b in bul("SOSYOLOJIDE") if b.tur == "TC"]
+
+
+def test_ocr_onarimi_kapatilabiliyor():
+    no = rastgele_tc(random.Random(3))
+    if "0" not in no:
+        pytest.skip("örnek numarada 0 yok")
+    bozuk = no.replace("0", "O")
+
+    assert bul(f"Kimlik: {bozuk}")
+    assert not bul(f"Kimlik: {bozuk}", ocr_onarimi=False)
+
+
+def test_temiz_yazim_hala_desen_kaynakli():
+    no = rastgele_tc(random.Random(4))
+    (b,) = [x for x in bul(f"Kimlik: {no}") if x.tur == "TC"]
+
+    assert b.kaynak == "desen"
+
+
+def test_ayrac_toleransi_gecersiz_sayiyi_gecirmiyor():
+    """Gevşek desen, doğrulamayı zayıflatmamalı."""
+    assert not [b for b in bul("Dosya 123 456 789 01 sayılı") if b.tur == "TC"]

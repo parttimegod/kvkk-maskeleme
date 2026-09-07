@@ -172,6 +172,24 @@ duruyor** — Aşama 2 bunun için.
 
 ## Tasarım
 
+**Gerçek belgeler temiz yazılmıyor.** İnsanlar kimlik numarasını
+boşlukla, noktayla, tireyle yazıyor; taranmış belgelerde OCR harfle
+rakamı karıştırıyor. İki tolerans katmanı var:
+
+```
+760 487 647 54     ayraç toleransı
+760.487.64754      ayraç toleransı
+76O48764754        OCR onarımı (O → 0)
+760487647S4        OCR onarımı (S → 5)
+```
+
+OCR onarımı **tahmin değil, doğrulanmış onarım**: harf yerine rakam
+konup kontrol hanesi tekrar hesaplanıyor, geçmezse aday atılıyor.
+`SOSYOLOJIDE` gibi harf ağırlıklı diziler bu yüzden kimlik sayılmıyor.
+Bulgunun `kaynak` alanı hangi yolla bulunduğunu söylüyor (`desen`,
+`ayrac`, `ocr`) -- onarılmış bir kaydı insanın gözden geçirmesi
+gerekebilir.
+
 **Desen tek başına yetmiyor.** "11 haneli sayı" deseni dosya
 numarasını, tutarı, tarih dizisini de yakalar. TC kimlik, VKN, IBAN ve
 kart numarasının kontrol hanesi var; doğrulanmayan aday eleniyor.

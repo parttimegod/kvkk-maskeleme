@@ -35,9 +35,11 @@ Aklıma gelen ama şimdi yapmayacağım şeyler.
 
 ## Sentetik veri
 - Daha fazla belge türü: tebligat, ihtarname, tutanak, fatura.
-- OCR hatası benzetimi -- taranmış belgede "1" ile "l" karışıyor,
-  gerçek metinlerde desen bu yüzden kaçıyor.
-- Bozuk yazım: boşluksuz TC, noktalı IBAN.
+- OCR ve ayraç toleransı eklendi. Kalan: gerçek taranmış belgelerde
+  ölçülmedi, hangi OCR hatalarının sık olduğu bilinmiyor.
+- Ayraç toleransı yalnızca TC, VKN ve IBAN'da. Telefon ve plaka
+  desenleri kendi ayraçlarını zaten kabul ediyor ama kontrol hanesi
+  olmadığı için gevşetmek riskli.
 
 ## Ölçüm
 - Recall/precision tablosunu README'ye koy.
