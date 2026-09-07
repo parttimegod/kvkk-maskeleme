@@ -25,6 +25,9 @@ from .ozel_nitelikli import KATEGORILER, incele
 from .sentetik import Belge, ornekler, temiz_belgeler
 
 YAPISAL = {"TC", "VKN", "IBAN", "TELEFON", "PLAKA", "EPOSTA", "KART"}
+# Kontrol hanesi yok, etiketle yakalanıyorlar. Model gerektirmedikleri
+# için sağlayıcı olmadan da ölçülüyorlar.
+CIPALI = {"PASAPORT", "DOGUM_TARIHI", "SGK_SICIL"}
 MODELE_BAGLI = {"AD", "ADRES", "KURUM"}
 OZEL_NITELIKLI = set(KATEGORILER)
 
@@ -98,7 +101,7 @@ class Rapor:
 def _tanimlayici_olc(
     rapor: Rapor, belgeler: list[Belge], saglayici: Saglayici | None
 ) -> None:
-    kapsam = YAPISAL | MODELE_BAGLI if saglayici else YAPISAL
+    kapsam = YAPISAL | CIPALI | (MODELE_BAGLI if saglayici else set())
 
     for belge in belgeler:
         sonuc = maskele(belge.metin, dogrula=False, saglayici=saglayici)

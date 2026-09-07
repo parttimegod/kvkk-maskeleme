@@ -21,10 +21,12 @@ def test_yapisal_recall_tam():
 
 def test_saglayicisiz_ad_olculmuyor():
     """Desen katmanının ad bulması beklenmiyor; ölçüme katmak haksız."""
+    from kvkk_maskeleme.olcum import CIPALI
+
     rapor = calistir(5)
 
     assert not (set(rapor.turler) & MODELE_BAGLI)
-    assert set(rapor.turler) <= YAPISAL
+    assert set(rapor.turler) <= YAPISAL | CIPALI
 
 
 def test_saglayiciyla_ad_olcume_giriyor():
@@ -67,7 +69,7 @@ def test_bozuk_cevap_sayiliyor():
 
 def test_belge_sayisi_dogru():
     rapor = calistir(7)
-    assert rapor.belge_sayisi == 28  # dört belge türü
+    assert rapor.belge_sayisi == 49  # yedi belge türü
 
 
 def test_tablo_basiliyor():
@@ -133,3 +135,32 @@ def test_ozel_nitelikli_tanimlayici_olcumune_karismiyor():
     rapor = calistir(3)
 
     assert not (set(rapor.turler) & set(rapor.ozel))
+
+
+def test_butun_tanimlayici_turleri_kapsaniyor():
+    """Bir tür hiçbir belgede geçmiyorsa tablo tam görünür ama eksik olur.
+
+    Bu test o sessiz boşluğa karşı: EPOSTA, KART, PASAPORT, SGK_SICIL
+    ve DOGUM_TARIHI uzun süre etiketlenmemişti ve ölçümde hiç yoktu.
+    """
+    from kvkk_maskeleme.olcum import CIPALI
+    from kvkk_maskeleme.sentetik import ornekler
+
+    etiketli = set()
+    for belge in ornekler(2):
+        etiketli |= {e.tur for e in belge.etiketler}
+
+    eksik = (YAPISAL | CIPALI | MODELE_BAGLI) - etiketli
+    assert not eksik, f"hiçbir sentetik belgede geçmeyen tür: {sorted(eksik)}"
+
+
+def test_cipali_turler_saglayicisiz_olculuyor():
+    """Bağlam çıpalı türler model gerektirmiyor, tabloda olmalılar."""
+    from kvkk_maskeleme.olcum import CIPALI
+
+    rapor = calistir(3)
+    assert set(rapor.turler) >= CIPALI
+
+
+def test_yedi_belge_turu():
+    assert calistir(3).belge_sayisi == 21

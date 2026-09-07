@@ -279,11 +279,16 @@ print(calistir(20).tablo())
 TANIMLAYICILAR (maskeleniyor)
 tür                     beklenen  bulunan   recall
 --------------------------------------------------
-IBAN                          20       20  100.0%
+DOGUM_TARIHI                  20       20  100.0%
+EPOSTA                        40       40  100.0%
+IBAN                          40       40  100.0%
+KART                          20       20  100.0%
+PASAPORT                      20       20  100.0%
 PLAKA                         20       20  100.0%
-TC                            60       60  100.0%
+SGK_SICIL                     20       20  100.0%
+TC                            80       80  100.0%
 TELEFON                       40       40  100.0%
-VKN                           20       20  100.0%
+VKN                           60       60  100.0%
 
 ÖZEL NİTELİKLİ (işaretleniyor)
 tür                     beklenen  bulunan   recall
@@ -292,7 +297,7 @@ CEZA_MAHKUMIYETI              20       20  100.0%
 DERNEK_VAKIF_SENDIKA          20       20  100.0%
 SAGLIK                        20       20  100.0%
 
-belge: 80
+belge: 140
 temiz metin: 15, yanlış pozitif: 0 (0.0% belgede)
 ```
 

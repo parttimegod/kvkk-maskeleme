@@ -155,6 +155,124 @@ def bilirkisi_raporu(tohum: int = 0) -> Belge:
     ])
 
 
+KURUMLAR = [
+    "Yıldız İnşaat Ltd. Şti.", "Deniz Turizm A.Ş.", "Akdeniz Lojistik Ltd. Şti.",
+    "Ege Gıda Sanayi A.Ş.", "Anadolu Tekstil Ltd. Şti.",
+]
+
+AYLAR = [
+    "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+    "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
+]
+
+
+def rastgele_eposta(r: random.Random) -> str:
+    ad = _kucuk_ascii(r.choice(ADLAR))
+    soyad = _kucuk_ascii(r.choice(SOYADLAR))
+    return f"{ad}.{soyad}@{r.choice(['ornekfirma', 'hukukburosu', 'posta'])}.com.tr"
+
+
+def _kucuk_ascii(s: str) -> str:
+    katlama = str.maketrans(
+        {"ı": "i", "İ": "i", "ğ": "g", "Ğ": "g", "ü": "u", "Ü": "u",
+         "ş": "s", "Ş": "s", "ö": "o", "Ö": "o", "ç": "c", "Ç": "c"}
+    )
+    return s.translate(katlama).lower()
+
+
+def rastgele_kart(r: random.Random) -> str:
+    """Luhn kontrolünden geçen kart numarası."""
+    govde = "4" + "".join(str(r.randint(0, 9)) for _ in range(14))
+    toplam = 0
+    for i, c in enumerate(reversed(govde)):
+        d = int(c)
+        if i % 2 == 0:
+            d *= 2
+            if d > 9:
+                d -= 9
+        toplam += d
+    son = (10 - toplam % 10) % 10
+    tam = govde + str(son)
+    return " ".join(tam[i : i + 4] for i in range(0, 16, 4))
+
+
+def rastgele_pasaport(r: random.Random) -> str:
+    return f"{r.choice('USZ')}{r.randint(1000000, 9999999)}"
+
+
+def rastgele_sgk_sicil(r: random.Random) -> str:
+    parcalar = [
+        str(r.randint(1, 2)), f"{r.randint(1000, 9999)}",
+        f"{r.randint(1, 99):02d}", f"{r.randint(1, 99):02d}",
+        f"{r.randint(1000000, 9999999)}", f"{r.randint(1, 999):03d}",
+        f"{r.randint(1, 99):02d}", f"{r.randint(1, 81):02d}", "000",
+    ]
+    return " ".join(parcalar)
+
+
+def rastgele_dogum_tarihi(r: random.Random) -> str:
+    return f"{r.randint(1, 28):02d}.{r.randint(1, 12):02d}.{r.randint(1950, 2005)}"
+
+
+def tebligat(tohum: int = 0) -> Belge:
+    """Tebligat mazbatası. E-posta, adres ve doğum tarihi taşıyor."""
+    r = random.Random(tohum + 5000)
+    ad, tc = rastgele_ad(r), rastgele_tc(r)
+    adres, eposta = rastgele_adres(r), rastgele_eposta(r)
+    dogum, kurum = rastgele_dogum_tarihi(r), r.choice(KURUMLAR)
+
+    return _yerlestir([
+        ("TEBLİGAT MAZBATASI\n\n", None),
+        ("MUHATAP      : ", None), (ad, "AD"),
+        ("\nT.C. Kimlik  : ", None), (tc, "TC"),
+        ("\nDoğum Tarihi : ", None), (dogum, "DOGUM_TARIHI"),
+        ("\nADRES        : ", None), (adres, "ADRES"),
+        ("\nE-POSTA      : ", None), (eposta, "EPOSTA"),
+        ("\nİLGİLİ KURUM : ", None), (kurum, "KURUM"),
+        (f"\n\nTebliğ edilecek evrak: 2026/{r.randint(100, 999)} sayılı karar. "
+         "Muhatabın adreste bulunamaması hâlinde durum şerh edilerek "
+         "iade edilecektir.\n", None),
+    ])
+
+
+def ihtarname(tohum: int = 0) -> Belge:
+    """İhtarname. Pasaport ve SGK sicili taşıyor."""
+    r = random.Random(tohum + 6000)
+    ad, pasaport = rastgele_ad(r), rastgele_pasaport(r)
+    sgk, vkn = rastgele_sgk_sicil(r), rastgele_vkn(r)
+    kurum = r.choice(KURUMLAR)
+
+    return _yerlestir([
+        ("İHTARNAME\n\n", None),
+        ("KEŞİDECİ     : ", None), (kurum, "KURUM"),
+        ("\nVergi No     : ", None), (vkn, "VKN"),
+        ("\nSGK Sicil No : ", None), (sgk, "SGK_SICIL"),
+        ("\n\nMUHATAP      : ", None), (ad, "AD"),
+        ("\nPasaport No  : ", None), (pasaport, "PASAPORT"),
+        ("\n\nİş sözleşmesinden doğan yükümlülüklerin yerine getirilmesi "
+         "aksi hâlde yasal yollara başvurulacağı ihtar olunur.\n", None),
+    ])
+
+
+def fatura(tohum: int = 0) -> Belge:
+    """Fatura. Kart numarası ve e-posta taşıyor."""
+    r = random.Random(tohum + 7000)
+    kurum, vkn = r.choice(KURUMLAR), rastgele_vkn(r)
+    ad, eposta = rastgele_ad(r), rastgele_eposta(r)
+    kart, iban = rastgele_kart(r), rastgele_iban(r)
+
+    return _yerlestir([
+        ("FATURA\n\n", None),
+        ("SATICI       : ", None), (kurum, "KURUM"),
+        ("\nVergi No     : ", None), (vkn, "VKN"),
+        ("\nIBAN         : ", None), (iban, "IBAN"),
+        ("\n\nALICI        : ", None), (ad, "AD"),
+        ("\nE-POSTA      : ", None), (eposta, "EPOSTA"),
+        ("\nÖdeme Kartı  : ", None), (kart, "KART"),
+        (f"\n\nTutar: {r.randint(1000, 90000)} TL. Ödeme tahsil edilmiştir.\n", None),
+    ])
+
+
 # Kişisel veri de özel nitelikli veri de İÇERMEYEN adliye cümleleri.
 # Sözlük katmanı bunlardan herhangi birini işaretlerse yanlış pozitif.
 # Cömert bir sözlük kaçınılmaz olarak fazladan işaretler; buradaki amaç
@@ -186,9 +304,11 @@ def temiz_belgeler() -> list[Belge]:
 def ornekler(adet: int = 20) -> list[Belge]:
     """Ölçüm için belge kümesi.
 
-    Dört tür: iki tanesi tanımlayıcı ağırlıklı, biri özel nitelikli
-    veri içeriyor, biri hiçbiri -- sonuncusu yanlış pozitif tuzaklarını
-    barındırıyor.
+    Yedi tür. Hepsi bir arada her tanımlayıcı türünü en az bir kez
+    içeriyor; bir tür hiçbir belgede geçmiyorsa ölçüm tablosu tam
+    görünüp aslında eksik olur.
+
+    Duruşma tutanağı bilerek temiz ve yanlış pozitif tuzakları taşıyor.
     """
     belgeler = []
     for i in range(adet):
@@ -196,6 +316,9 @@ def ornekler(adet: int = 20) -> list[Belge]:
         belgeler.append(bilirkisi_raporu(i))
         belgeler.append(ceza_dosyasi(i))
         belgeler.append(durusma_tutanagi(i))
+        belgeler.append(tebligat(i))
+        belgeler.append(ihtarname(i))
+        belgeler.append(fatura(i))
     return belgeler
 
 

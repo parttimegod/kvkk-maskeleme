@@ -34,7 +34,8 @@ Aklıma gelen ama şimdi yapmayacağım şeyler.
   maskelenmeli mi tartışılmalı.
 
 ## Sentetik veri
-- Daha fazla belge türü: tebligat, ihtarname, tutanak, fatura.
+- Belge türleri yedi oldu; her tanımlayıcı türü en az bir belgede
+  geçiyor. Kalan: gerçek belgelerin biçimiyle karşılaştırılmadı.
 - OCR ve ayraç toleransı eklendi. Kalan: gerçek taranmış belgelerde
   ölçülmedi, hangi OCR hatalarının sık olduğu bilinmiyor.
 - Ayraç toleransı yalnızca TC, VKN ve IBAN'da. Telefon ve plaka
