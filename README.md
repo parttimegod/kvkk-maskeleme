@@ -23,6 +23,9 @@ ve test edildi; `OllamaSaglayici` verildiğinde devreye giriyor.
 | Telefon | ✓ | desen |
 | Plaka | ✓ | desen |
 | E-posta | ✓ | desen |
+| Pasaport no | ✓ | bağlam çıpası |
+| Doğum tarihi | ✓ | bağlam çıpası |
+| SGK sicil no | ✓ | bağlam çıpası |
 | **İsim** | altyapı hazır | model katmanı |
 | **Adres** | altyapı hazır | model katmanı |
 | **Kurum** | altyapı hazır | model katmanı |
@@ -189,6 +192,24 @@ konup kontrol hanesi tekrar hesaplanıyor, geçmezse aday atılıyor.
 Bulgunun `kaynak` alanı hangi yolla bulunduğunu söylüyor (`desen`,
 `ayrac`, `ocr`) -- onarılmış bir kaydı insanın gözden geçirmesi
 gerekebilir.
+
+**Kontrol hanesi olmayan türlerde bağlam çıpası kullanılıyor.**
+Pasaport numarası, doğum tarihi ve SGK sicilinde doğrulanacak bir
+kontrol hanesi yok; desen tek başına yanlış pozitif üretir. `01.01.2026`
+bir doğum tarihi de olabilir, bir sözleşme tarihi de — ayırt eden şey
+yanındaki etiket.
+
+```
+Doğum Tarihi: 12.03.1985     →  yakalanır
+Duruşma 15.02.2026 tarihinde →  yakalanmaz
+```
+
+Bu bilinçli bir eksiklik: etiketsiz yazılmış bir pasaport numarası
+kaçıyor. Alternatifi, adliye metnindeki her tarihi doğum tarihi sanmak
+olurdu ve çıktı kullanılamaz hale gelirdi.
+
+Etiket maskelenmiyor, yalnızca değer: `Doğum Tarihi: <DOGUM_TARIHI_1>`
+okunabilir kalıyor.
 
 **Desen tek başına yetmiyor.** "11 haneli sayı" deseni dosya
 numarasını, tutarı, tarih dizisini de yakalar. TC kimlik, VKN, IBAN ve

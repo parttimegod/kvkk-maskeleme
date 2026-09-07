@@ -69,6 +69,9 @@ _DOGRULAYICI = {
 _ONCELIK = {
     "IBAN": 0, "EPOSTA": 1, "KART": 2, "TELEFON": 3,
     "TC": 4, "VKN": 5, "PLAKA": 6,
+    # Bağlam çıpalı türler en sona: kontrol haneleri olmadığı için
+    # doğrulanmış bir bulguyla çakışırlarsa onlar geri çekilsin.
+    "PASAPORT": 7, "DOGUM_TARIHI": 8, "SGK_SICIL": 9,
 }
 
 # Taranmış belgelerde harfe dönüşen rakamlar. Her harf tek bir rakama
@@ -141,9 +144,12 @@ def bul(metin: str, ocr_onarimi: bool = True) -> list[Bulgu]:
     ocr_onarimi=False ile onarım kapatılabilir; taranmamış, temiz
     kaynaklarda gereksiz iş yapmamak için.
     """
+    from .baglam import bulgulara_cevir
+
     adaylar = _desenle_bul(metin)
     if ocr_onarimi:
         adaylar += _ocr_ile_bul(metin)
+    adaylar += bulgulara_cevir(metin)
 
     # Uzun ve yüksek öncelikli olan kazanıyor; kalanlar eleniyor.
     adaylar.sort(key=lambda b: (-len(b), _ONCELIK[b.tur], b.baslangic))
