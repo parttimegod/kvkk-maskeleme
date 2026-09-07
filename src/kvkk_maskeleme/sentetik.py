@@ -162,3 +162,26 @@ def ornekler(adet: int = 20) -> list[Belge]:
         belgeler.append(dilekce(i))
         belgeler.append(bilirkisi_raporu(i))
     return belgeler
+
+
+def ceza_dosyasi(tohum: int = 0) -> Belge:
+    """Özel nitelikli veri içeren belge (KVKK md. 6).
+
+    Maskelenecek alan olmayan, cümlenin kendisinin veri olduğu durumu
+    sınamak için. Etiketlerde yalnızca tanımlayıcılar var; özel
+    nitelikli kısım maskelenmiyor, işaretleniyor.
+    """
+    r = random.Random(tohum + 2000)
+    ad, tc = rastgele_ad(r), rastgele_tc(r)
+
+    return _yerlestir([
+        ("ANTALYA CUMHURİYET BAŞSAVCILIĞI\n\n", None),
+        ("ŞÜPHELİ   : ", None), (ad, "AD"),
+        (" (T.C. Kimlik No: ", None), (tc, "TC"), (")", None),
+        (f"\nSORUŞTURMA NO: 2026/{r.randint(1000, 9999)}\n\n", None),
+        ("Şüphelinin adli sicil kaydında daha önce uyuşturucu madde "
+         "kullanmaktan mahkûmiyeti bulunduğu tespit edilmiştir. "
+         "Şüphelinin kronik bir rahatsızlığı nedeniyle sürekli ilaç "
+         "kullandığı, bu nedenle hastane raporu sunduğu anlaşılmıştır. "
+         "Sendika üyeliği bulunduğu beyan edilmiştir.\n", None),
+    ])

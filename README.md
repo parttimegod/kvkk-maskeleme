@@ -60,16 +60,37 @@ köken, siyasi düşünce, felsefi inanç, din, mezhep veya diğer inançlar,
 kılık ve kıyafet, dernek/vakıf/sendika üyeliği, sağlık, cinsel hayat,
 **ceza mahkûmiyeti ve güvenlik tedbirleri**, biyometrik ve genetik veri.
 
-**Bu araç bunların hiçbirini tespit etmiyor.**
+Bu veriler **maskelenmez, işaretlenir.** Sebebi şu: özel nitelikli veri
+bir alan değil, bağlamdır. "Sanık daha önce uyuşturucu kullanmaktan
+sabıkalıdır" cümlesinde maskelenecek bir alan yoktur — cümlenin kendisi
+veridir. Maskelemeye kalkışmak belgeyi anlamsızlaştırır.
 
-Sebebi teknik: özel nitelikli veriler tanımlayıcı değil, bağlamdır.
-"Sanık daha önce uyuşturucu kullanmaktan sabıkalıdır" cümlesi bir ceza
-mahkûmiyeti verisidir ama içinde maskelenecek bir alan yoktur — cümlenin
-kendisi veridir. Desenle de, ifade çıkarmayla da çözülmez.
+```python
+from kvkk_maskeleme import incele
 
-Adli, tıbbi veya insan kaynakları belgeleriyle çalışıyorsanız bu boşluk
-sizin için kritik olabilir. Aracın çıktısını "temizlendi" diye
-değerlendirmeyin.
+rapor = incele(metin)
+rapor.var_mi          # True
+rapor.kategoriler()   # {"CEZA_MAHKUMIYETI", "SAGLIK"}
+print(rapor.uyari())
+```
+
+```
+Bu belge özel nitelikli kişisel veri içeriyor olabilir
+(CEZA_MAHKUMIYETI, DERNEK_VAKIF_SENDIKA, SAGLIK). KVKK md. 6 uyarınca
+işlenmesi açık rıza veya kanunda öngörülen bir hâle bağlıdır.
+Maskeleme bu veriyi kaldırmaz.
+```
+
+Kategoriler kanundaki sırayla ve kanun terminolojisiyle adlandırıldı;
+uyum çalışması yapan biri çıktıyı doğrudan maddeye eşleyebilsin diye.
+
+**Hata dengesi burada terstir.** Tanımlayıcı katmanında yanlış pozitif
+kötüdür; burada yanlış negatif kötüdür. Boşuna işaretlenen belge bir
+insanın birkaç dakikasına mal olur, kaçan belge KVKK ihlaline. Sözlük
+katmanı bu yüzden bilerek cömert.
+
+Sağlayıcı verilirse model katmanı da çalışır ve sözlüğün kaçırdığı
+bağlamsal ifadeleri ekler.
 
 ### Yeniden tanımlanma
 

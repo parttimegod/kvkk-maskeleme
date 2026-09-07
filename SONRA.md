@@ -10,13 +10,15 @@ Aklıma gelen ama şimdi yapmayacağım şeyler.
 - Yerel model üzerinden, veri makineden çıkmadan.
 - Sentetik kümede isim recall'ını ölç; deterministik katmanla karşılaştır.
 
-## KVKK boşlukları (bilinen, kritik)
-- Özel nitelikli veri (md. 6) hiç tespit edilmiyor: sağlık, ceza
-  mahkûmiyeti, din, etnik köken, sendika üyeliği, cinsel hayat.
-  Bunlar tanımlayıcı değil bağlam -- "sabıkalıdır" cümlesi tek başına
-  veri. Model katmanı için ayrı bir görev, ayrı istem gerekiyor.
-- Adli belgelerde ceza mahkûmiyeti verisi ana içerik. Bu boşluk
-  kapanmadan araç adli bağlamda "temizler" diye sunulmamalı.
+## KVKK boşlukları
+- Özel nitelikli veri artık işaretleniyor (sözlük katmanı hazır, model
+  katmanı sağlayıcı verilince). Kalan iş: sözlük kökleri gerçek
+  belgelerle sınanmadı, kaçırdıkları ölçülmedi.
+- Sözlükte yanlış pozitif ölçümü yok. Şu an yalnızca bilinen tuzaklar
+  test edildi ("tanık dinlenmesi", "Aydın"). Gerçek metinde başka
+  çakışmalar çıkacaktır.
+- Özel nitelikli veri için recall ölçümü yok: sentetik belgelerde
+  etiketlenmiş değiller, yalnızca tanımlayıcılar etiketli.
 - Yeniden tanımlanma riski ölçülmüyor. Doğrudan tanımlayıcı gitse bile
   dava türü + tarih + mahkeme + olay ayrıntısı kişiyi bulunabilir
   kılabiliyor. k-anonimlik benzeri bir ölçüt düşünülebilir.
