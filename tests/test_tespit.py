@@ -9,7 +9,7 @@ from itertools import pairwise
 
 import pytest
 
-from turkish_anonymizer.sentetik import (
+from kvkk_maskeleme.sentetik import (
     bilirkisi_raporu,
     dilekce,
     ornekler,
@@ -17,7 +17,7 @@ from turkish_anonymizer.sentetik import (
     rastgele_tc,
     rastgele_vkn,
 )
-from turkish_anonymizer.tespit import bul, turlere_gore
+from kvkk_maskeleme.tespit import bul, turlere_gore
 
 
 def test_tc_bulunuyor():

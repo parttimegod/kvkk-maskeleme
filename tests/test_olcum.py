@@ -6,9 +6,9 @@ yüzden kaçırma ve uydurma senaryolarını elle kuruyoruz.
 
 import json
 
-from turkish_anonymizer.model import SahteSaglayici
-from turkish_anonymizer.olcum import MODELE_BAGLI, YAPISAL, calistir, olc
-from turkish_anonymizer.sentetik import dilekce, ornekler
+from kvkk_maskeleme.model import SahteSaglayici
+from kvkk_maskeleme.olcum import MODELE_BAGLI, YAPISAL, calistir, olc
+from kvkk_maskeleme.sentetik import dilekce, ornekler
 
 
 def test_yapisal_recall_tam():

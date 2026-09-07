@@ -4,14 +4,14 @@ import random
 
 import pytest
 
-from turkish_anonymizer.maskeleme import (
+from kvkk_maskeleme.maskeleme import (
     SizintiHatasi,
     dogrula_temiz,
     geri_al,
     maskele,
 )
-from turkish_anonymizer.sentetik import dilekce, ornekler, rastgele_tc
-from turkish_anonymizer.tespit import bul
+from kvkk_maskeleme.sentetik import dilekce, ornekler, rastgele_tc
+from kvkk_maskeleme.tespit import bul
 
 
 def test_maskelenen_metinde_veri_kalmiyor():
@@ -80,7 +80,7 @@ def test_dogrula_temiz_temiz_metinde_sessiz():
 
 def test_maskeleme_dogrulamayi_cagiriyor(monkeypatch):
     """Tespit bozulsa bile maskeleme doğrulamayı atlamamalı."""
-    import turkish_anonymizer.maskeleme as m
+    import kvkk_maskeleme.maskeleme as m
 
     cagrildi = []
     monkeypatch.setattr(m, "dogrula_temiz", lambda metin: cagrildi.append(metin))
@@ -90,7 +90,7 @@ def test_maskeleme_dogrulamayi_cagiriyor(monkeypatch):
 
 
 def test_dogrulama_kapatilabiliyor(monkeypatch):
-    import turkish_anonymizer.maskeleme as m
+    import kvkk_maskeleme.maskeleme as m
 
     def patlat(metin):
         raise AssertionError("doğrulama çağrılmamalıydı")

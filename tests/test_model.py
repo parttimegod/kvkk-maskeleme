@@ -10,8 +10,8 @@ olduğu: bozuk JSON, uydurma ifade, yanlış tür, boş cevap.
 
 import pytest
 
-from turkish_anonymizer.maskeleme import maskele
-from turkish_anonymizer.model import (
+from kvkk_maskeleme.maskeleme import maskele
+from kvkk_maskeleme.model import (
     MODEL_TURLERI,
     SahteSaglayici,
     bul,
@@ -143,7 +143,7 @@ def test_cakismada_desen_kazaniyor():
     """Doğrulanmış kimlik numarası, modelin tahmininden güvenilir."""
     import random
 
-    from turkish_anonymizer.sentetik import rastgele_tc
+    from kvkk_maskeleme.sentetik import rastgele_tc
 
     no = rastgele_tc(random.Random(0))
     metin = f"Kimlik {no} numaralı kişi"

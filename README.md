@@ -1,4 +1,4 @@
-# turkish-anonymizer
+# kvkk-maskeleme
 
 Türkçe metinlerde kişisel veri tespiti ve **maskeleme**. Belgeleri
 işlemeden önce, özellikle bulut tabanlı bir modele göndermeden önce
@@ -82,8 +82,8 @@ olma riskini ölçmüyor.
 ## Kurulum
 
 ```bash
-git clone https://github.com/parttimegod/turkish-anonymizer
-cd turkish-anonymizer
+git clone https://github.com/parttimegod/kvkk-maskeleme
+cd kvkk-maskeleme
 uv sync
 ```
 
@@ -92,7 +92,7 @@ Bağımlılığı yok; yalnızca standart kütüphane.
 ## Kullanım
 
 ```python
-from turkish_anonymizer import maskele, geri_al
+from kvkk_maskeleme import maskele, geri_al
 
 sonuc = maskele(metin)
 
@@ -151,7 +151,7 @@ kelimeyle çakışıyor — *Deniz, Umut, Şafak, Barış, Güneş* — yani "b�
 harfle başlayan kelime" kuralı hem kaçırıyor hem yanlış yakalıyor.
 
 ```python
-from turkish_anonymizer import maskele, OllamaSaglayici
+from kvkk_maskeleme import maskele, OllamaSaglayici
 
 sonuc = maskele(metin, saglayici=OllamaSaglayici(model="gemma4-abl-16k"))
 sonuc.uydurma              # modelin metinde olmayan ifadeleri
@@ -179,7 +179,7 @@ etmiyor; %60 recall'la çalışan bir araç çalışmıyor demektir.
 Sentetik belgeler etiketli olduğu için gerçek recall hesaplanabiliyor:
 
 ```python
-from turkish_anonymizer.olcum import calistir
+from kvkk_maskeleme.olcum import calistir
 print(calistir(20).tablo())
 ```
 
@@ -207,7 +207,7 @@ sırasında kullanmak, aracın önlemeye çalıştığı ihlalin kendisi olur.
 nerede olduğu biliniyor, bu sayede tespit oranı ölçülebiliyor.
 
 ```python
-from turkish_anonymizer.sentetik import dilekce
+from kvkk_maskeleme.sentetik import dilekce
 
 belge = dilekce(tohum=0)
 belge.metin        # sentetik dilekçe

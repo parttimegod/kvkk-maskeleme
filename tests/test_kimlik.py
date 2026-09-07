@@ -9,7 +9,7 @@ import random
 
 import pytest
 
-from turkish_anonymizer.kimlik import (
+from kvkk_maskeleme.kimlik import (
     iban_gecerli,
     luhn_gecerli,
     tc_kimlik_gecerli,
@@ -17,7 +17,7 @@ from turkish_anonymizer.kimlik import (
     vkn_gecerli,
     vkn_kontrol_hanesi,
 )
-from turkish_anonymizer.sentetik import rastgele_iban, rastgele_tc, rastgele_vkn
+from kvkk_maskeleme.sentetik import rastgele_iban, rastgele_tc, rastgele_vkn
 
 
 def test_uretilen_tc_gecerli():
