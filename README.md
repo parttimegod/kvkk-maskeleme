@@ -110,6 +110,36 @@ uv sync
 
 Bağımlılığı yok; yalnızca standart kütüphane.
 
+## Komut satırı
+
+```bash
+kvkk-maskeleme dosya.txt                 # maskele, stdout'a yaz
+kvkk-maskeleme dosya.txt -o temiz.txt
+cat dosya.txt | kvkk-maskeleme
+kvkk-maskeleme dosya.txt --sadece-incele # yalnızca özel nitelikli raporu
+kvkk-maskeleme dosya.txt --json
+```
+
+Uyarılar ve özet **stderr**'e gider, çıktı stdout'a. Böylece
+`kvkk-maskeleme dosya.txt > temiz.txt` yazan biri uyarıyı görür ama
+dosyası kirlenmez.
+
+Eşleme tablosu **istenmedikçe yazılmaz** — bütün kişisel veriyi düz
+metin içerdiği için maskelenmiş çıktının yanına sessizce bırakılması
+maskelemeyi anlamsız kılar:
+
+```bash
+kvkk-maskeleme dosya.txt --esleme harita.json
+# UYARI: harita.json bütün kişisel veriyi düz metin içeriyor.
+```
+
+Çıkış kodları betikler için: `0` temiz, `1` hata, `2` özel nitelikli
+veri bulundu (`--kati` ile).
+
+```bash
+kvkk-maskeleme dosya.txt --kati > temiz.txt || echo "elle inceleme gerekiyor"
+```
+
 ## Kullanım
 
 ```python

@@ -8,6 +8,9 @@ authors = [{ name = "Emirhan Bahçacı" }]
 requires-python = ">=3.11"
 dependencies = []
 
+[project.scripts]
+kvkk-maskeleme = "kvkk_maskeleme.cli:main"
+
 [build-system]
 requires = ["uv_build>=0.12.2,<0.13.0"]
 build-backend = "uv_build"
