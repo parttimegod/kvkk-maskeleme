@@ -158,23 +158,58 @@ class OllamaSaglayici:
     Bağımlılık eklememek için standart kütüphaneyle konuşuyor. Model
     ancak ilk çağrıda belleğe yükleniyor; bu nesneyi oluşturmak tek
     başına VRAM tüketmiyor.
+
+    **`dusunme` varsayılan olarak kapalı.** Düşünme modu açık bir model
+    bu işte cevaba hiç varmadan pencereyi doldurabiliyor: ölçtüğümüz
+    bir modelde 16384 token'lık pencerenin tamamı düşünmeye gitti ve
+    cevap boş döndü (`done_reason: length`), aynı istem düşünme
+    kapalıyken 1,4 saniyede doğru JSON verdi. Buradaki iş akıl yürütmek
+    değil, metinde geçen ifadeyi bulup yazmak; düşünme yalnızca maliyet.
+    Boş cevap sessizce kaybolmuyor, `bicim_hatasi` olarak sayılıyor --
+    ama sebebi görünmediği için burada varsayılanı kapalı tutuyoruz.
+
+    `baglam` verilmezse Ollama kendi varsayılanını kullanıyor; bu
+    makinede 4096 çıkıyor ve uzun belgelerde istem sessizce kırpılır.
+
+    Varsayılan model ölçülerek seçildi. 21 belge, aynı istem, düşünme
+    kapalı, tek değişen model (16 GB VRAM):
+
+        model                              AD    KURUM  yanlış poz.  s/belge
+        gemma-4-abliterated:12b-qat      %100    %100        0          1,6
+        qwen3.5-abliterated:9b-q8_0      %100    %100        6          2,5
+        Qwen3.6-abliterated:35b-a3b       %97   %77,8        0          3,8
+
+    Qwen3.5 aynı recall'ı veriyor ama 17 temiz metnin 6'sını yanlışlıkla
+    işaretledi; bu araçta temiz metni kirletmek kabul edilemez. Qwen3.6
+    hem daha yavaş hem kurum adlarında zayıf. Kart değiştiğinde ölçümü
+    tekrarla, bu sıralama donanıma bağlı.
     """
 
-    model: str = "gemma4-abl-16k"
+    model: str = "huihui_ai/gemma-4-abliterated:12b-qat"
     adres: str = "http://127.0.0.1:11434"
     sicaklik: float = 0.0
     zaman_asimi: float = 180.0
+    dusunme: bool | None = False
+    baglam: int | None = None
 
     def sor(self, istem: str) -> str:
         import urllib.error
         import urllib.request
 
-        govde = json.dumps({
+        secenekler: dict[str, object] = {"temperature": self.sicaklik}
+        if self.baglam is not None:
+            secenekler["num_ctx"] = self.baglam
+
+        govde_sozlugu: dict[str, object] = {
             "model": self.model,
             "prompt": istem,
             "stream": False,
-            "options": {"temperature": self.sicaklik},
-        }).encode("utf-8")
+            "options": secenekler,
+        }
+        if self.dusunme is not None:
+            govde_sozlugu["think"] = self.dusunme
+
+        govde = json.dumps(govde_sozlugu).encode("utf-8")
 
         istek = urllib.request.Request(
             f"{self.adres}/api/generate",
@@ -184,6 +219,19 @@ class OllamaSaglayici:
         try:
             with urllib.request.urlopen(istek, timeout=self.zaman_asimi) as y:
                 return json.loads(y.read()).get("response", "")
+        except urllib.error.HTTPError as e:
+            # HTTPError, URLError'ın alt sınıfı. Önce yakalanmazsa sunucu
+            # ayaktayken bile "ulaşılamadı" diyoruz ve kullanıcı servisi
+            # kurcalamaya başlıyor; oysa en sık sebep 404, yani modelin
+            # kurulu olmaması.
+            if e.code == 404:
+                raise RuntimeError(
+                    f"Ollama ayakta ama '{self.model}' modeli kurulu değil. "
+                    "`ollama list` kurulu modelleri gösterir."
+                ) from e
+            raise RuntimeError(
+                f"Ollama {e.code} döndürdü ({e.reason})."
+            ) from e
         except urllib.error.URLError as e:
             raise RuntimeError(
                 f"Ollama'ya ulaşılamadı ({self.adres}). Servis çalışıyor mu? "

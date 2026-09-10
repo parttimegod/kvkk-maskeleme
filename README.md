@@ -341,7 +341,7 @@ word" rule both misses names and catches the wrong things.
 ```python
 from kvkk_maskeleme import maskele, OllamaSaglayici
 
-sonuc = maskele(metin, saglayici=OllamaSaglayici(model="gemma4-abl-16k"))
+sonuc = maskele(metin, saglayici=OllamaSaglayici())
 sonuc.uydurma              # expressions the model invented that are not in the text
 sonuc.model_bicim_hatasi   # set if the response is not JSON
 ```
@@ -349,6 +349,40 @@ sonuc.model_bicim_hatasi   # set if the response is not JSON
 If no provider is supplied, only the pattern layer runs. The interface
 is a single-method protocol, so wiring it up to a different backend is
 easy.
+
+### Choosing a model
+
+The default was picked by measurement, not by reputation. Same 21
+documents, same prompt, thinking disabled, one variable — the model
+(16 GB VRAM):
+
+| Model | AD | KURUM | False positives | s/document |
+|---|---|---|---|---|
+| `gemma-4-abliterated:12b-qat` | 100% | 100% | 0 | 1.6 |
+| `qwen3.5-abliterated:9b-q8_0` | 100% | 100% | 6 | 2.5 |
+| `Qwen3.6-abliterated:35b-a3b` | 97% | 77.8% | 0 | 3.8 |
+
+False positives are counted over 17 clean control sentences. Qwen3.5
+reaches the same recall but wrongly flags 6 of them; for this tool,
+polluting clean text is not an acceptable trade. Repeat the measurement
+on your own hardware — the ranking depends on what fits in VRAM.
+
+**Thinking is disabled by default, and this matters more than the model
+choice.** A model left to think can fill the whole context window
+without ever reaching an answer: one of the models above spent all
+16384 tokens thinking and returned an empty response
+(`done_reason: length`). The same prompt with thinking off answered
+correctly in 1.4 seconds. The empty response is counted as a format
+error rather than lost silently, but the cause is not visible from the
+counter, so the default is off. The task here is not reasoning; it is
+copying out an expression that is already in the text.
+
+The context window is worth setting too. Left unset, Ollama picked 4096
+on this machine, which silently truncates long documents:
+
+```python
+OllamaSaglayici(model="...", dusunme=False, baglam=8192)
+```
 
 **We do not ask the model for a position, we ask it for text.** Models
 are bad at counting characters; when one says "from character 45 to 56"
@@ -401,18 +435,50 @@ DERNEK_VAKIF_SENDIKA          20       20  100.0%
 SAGLIK                        20       20  100.0%
 
 belge: 140
-temiz metin: 15, yanlış pozitif: 0 (0.0% belgede)
+temiz metin: 17, yanlış pozitif: 0 (0.0% belgede)
 ```
 
 The last line measures the cost of the generous dictionary. The clean
 sentences contain known traps: *"tanık dinlenmesi"* ("hearing the
-witness"), *"Aydın ili"* ("Aydın province"), *"dinlenme salonu"* ("rest
-lounge"). If these get flagged, the tool becomes unusable in a
-courthouse.
+witness"), *"Aydın ili"* ("Aydın province"), *"sözleşme sağlıklı biçimde
+yürütülmüştür"* ("the contract was carried out soundly"). If these get
+flagged, the tool becomes unusable in a courthouse.
 
 When no provider is supplied, names and addresses are not included in
 the measurement; the pattern layer is not expected to find them anyway,
 and including them would unfairly lower the result.
+
+### With the model layer
+
+Passing a provider adds AD, ADRES and KURUM to the measured scope. Same
+140 documents, `gemma-4-abliterated:12b-qat`, thinking disabled:
+
+```
+AD                           220      220  100.0%
+ADRES                         40       40  100.0%
+KURUM                         60       60  100.0%
+
+belge: 140
+temiz metin: 17, yanlış pozitif: 0 (0.0% belgede)
+model uydurması: 5
+sure: 155.6s (1.1s/belge)
+```
+
+`model uydurması` counts expressions the model returned that do not
+occur in the document. Five out of 320 model-found items were invented.
+They are discarded rather than masked, because an expression that is not
+in the text cannot be a position in it — but the count is reported, so
+the fabrication rate of a given model is visible instead of hidden.
+
+**Read the 100% narrowly.** The generator places names in predictable
+labelled slots — *"Davacı Ahmet Yılmaz"* — and draws them from a fixed
+list. That is a fair test of "can the model pick a name out of Turkish
+legal prose", and no test at all of a name appearing mid-sentence
+without a label, a name that is also an everyday word used as an
+everyday word, or a misspelled name. It is an upper bound. This is the
+same limitation the special-category measurement has, recorded in
+[SONRA.md](SONRA.md): where a measurement shares vocabulary or structure
+with the generator, it measures the generator as much as the tool.
 
 ## Test data
 
