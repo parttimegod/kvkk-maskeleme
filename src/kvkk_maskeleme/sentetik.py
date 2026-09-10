@@ -280,6 +280,9 @@ def fatura(tohum: int = 0) -> Belge:
 TEMIZ_CUMLELER = (
     "Tanığın dinlenmesine karar verildi.",
     "Duruşmada tanıklar dinlendi ve beyanları tutanağa geçirildi.",
+    "Sözleşme sağlıklı biçimde yürütülmüştür.",
+    "Dosya kapsamında sağlıklı bir değerlendirme yapılabilmesi için ek "
+    "süre verilmiştir.",
     "Dosyanın incelenmesi için duruşma ertelenmiştir.",
     "Bilirkişi raporuna itiraz süresi içinde beyanda bulunulmamıştır.",
     "Mahkememizce yapılan yargılama sonucunda karar verilmiştir.",

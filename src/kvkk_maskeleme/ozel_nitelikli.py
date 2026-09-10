@@ -54,7 +54,7 @@ IPUCLARI: dict[str, tuple[str, ...]] = {
         "hastalik", "hastane", "teshis", "tedavi", "ameliyat",
         "engelli", "malul", "psikiyatri", "psikolojik", "recete", "epikriz",
         "kronik", "tesekkullu", "sagliksiz", "rahatsizlik", "ilac",
-        "bagimlilik", "uyusturucu", "alkolik", "saglik", "hasta",
+        "bagimlilik", "uyusturucu", "alkolik", "saglik", "sagligi", "hasta",
     ),
     "DIN_MEZHEP": (
         # "din" tam kelime; ekli hâlleri "dini" ile yakalanıyor. İkisini
@@ -142,7 +142,13 @@ def _kucult(metin: str) -> str:
 # denk geliyorlar ve adliye metninde sık geçen kelimeleri yakalıyorlar:
 # "din" kökü "dinlenme"yi buluyor, oysa "tanık dinlenmesi" her duruşma
 # tutanağında var. Bu köklerde tam kelime şart.
-TAM_KELIME = frozenset({"din", "irk", "dna"})
+#
+# "saglik" ve "hasta" aynı sebeple burada. "saglik" öneki "sağlıklı"yı
+# yakalıyordu; "sözleşme sağlıklı biçimde yürütülmüştür" adliye metninde
+# sık geçiyor ve sağlık verisi değil. Ekli hâller ("sağlığı",
+# "sağlığının") için ayrı kök gerekiyor, çünkü k/ğ yumuşaması yüzünden
+# "saglik" öneki onları zaten tutmuyordu.
+TAM_KELIME = frozenset({"din", "irk", "dna", "saglik", "hasta"})
 
 
 def _desen(kok: str) -> re.Pattern[str]:

@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.1] - 2026-09-10
+
+### Fixed
+
+- The `saglik` stem added in 0.1.0 matched `sağlıklı` ("sound", "properly"),
+  which is common in Turkish legal prose — "sözleşme sağlıklı biçimde
+  yürütülmüştür" was reported as health data. `saglik` and `hasta` now
+  require a whole-word match, following the existing `din` / `dinlenme`
+  precedent. A separate `sagligi` stem keeps the inflected forms
+  ("sağlığı", "sağlığının") that whole-word matching would otherwise lose
+  to k/ğ softening.
+- Added the affected phrasings to the clean-sentence guard so the
+  regression cannot come back unnoticed.
+
 ## [0.1.0] - 2026-09-10
 
 ### Added
