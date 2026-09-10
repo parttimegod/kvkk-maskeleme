@@ -62,7 +62,7 @@ Points to note:
 - The IBAN is caught even though it is written with spaces.
 - The phrase "tanık dinlenmesine" ("hearing the witness") is not counted
   as religious data, even though it contains the root "din" ("religion").
-- The summary goes to stderr, so `> temiz.txt` captures only the masked
+- The summary goes to stderr, so `> clean.txt` captures only the masked
   document.
 - The phrase "sağlık raporu" ("health report") is flagged as a special
   category of personal data (KVKK Article 6); this line is not masked,
@@ -177,14 +177,14 @@ being identifiable.
 No installation needed:
 
 ```bash
-uvx --from git+https://github.com/parttimegod/kvkk-maskeleme kvkk-maskeleme dosya.txt
+uvx --from git+https://github.com/parttimegod/kvkk-maskeleme kvkk-maskeleme document.txt
 ```
 
 To install it permanently:
 
 ```bash
 uv tool install git+https://github.com/parttimegod/kvkk-maskeleme
-kvkk-maskeleme dosya.txt
+kvkk-maskeleme document.txt
 ```
 
 As a library:
@@ -199,15 +199,15 @@ package itself has no dependencies, only the standard library.
 ## Command line
 
 ```bash
-kvkk-maskeleme dosya.txt                 # mask, write to stdout
-kvkk-maskeleme dosya.txt -o temiz.txt
-cat dosya.txt | kvkk-maskeleme
-kvkk-maskeleme dosya.txt --sadece-incele # special-category report only
-kvkk-maskeleme dosya.txt --json
+kvkk-maskeleme document.txt                 # mask, write to stdout
+kvkk-maskeleme document.txt -o clean.txt
+cat document.txt | kvkk-maskeleme
+kvkk-maskeleme document.txt --sadece-incele # special-category report only
+kvkk-maskeleme document.txt --json
 ```
 
 Warnings and the summary go to **stderr**, output goes to stdout. So
-someone who writes `kvkk-maskeleme dosya.txt > temiz.txt` still sees the
+someone who writes `kvkk-maskeleme document.txt > clean.txt` still sees the
 warning, but their file does not get polluted.
 
 The mapping table **is not written unless asked for** — since it
@@ -215,15 +215,24 @@ contains all the personal data in plain text, leaving it silently next
 to the masked output would make the masking pointless:
 
 ```bash
-kvkk-maskeleme dosya.txt --esleme harita.json
-# UYARI: harita.json bütün kişisel veriyi düz metin içeriyor.
+kvkk-maskeleme document.txt --esleme mapping.json
 ```
+
+Writing it prints this to stderr:
+
+```
+UYARI: mapping.json bütün kişisel veriyi düz metin içeriyor. Maskelenmiş
+metinle birlikte hiçbir yere göndermeyin.
+```
+
+The warning says the mapping file holds every identifier in plain text, and
+must never be sent anywhere together with the masked document.
 
 Exit codes for scripts: `0` clean, `1` error, `2` special category data
 found (with `--kati`).
 
 ```bash
-kvkk-maskeleme dosya.txt --kati > temiz.txt || echo "manual review needed"
+kvkk-maskeleme document.txt --kati > clean.txt || echo "manual review needed"
 ```
 
 ## Usage
