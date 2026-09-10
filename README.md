@@ -8,6 +8,66 @@ doğrudan tanımlayıcıları yer tutucuyla değiştirir.
 > döndürülebilir olduğu için çıktı KVKK anlamında hâlâ kişisel veridir.
 > Ayrıntı için [KVKK kapsamı](#kvkk-kapsamı) bölümüne bakın.
 
+## Örnek
+
+Girdi (`demo.txt`):
+
+```
+ANTALYA 3. ASLİYE HUKUK MAHKEMESİ
+Dosya No: 2026/1487 E.
+
+Davacı Mehmet Yılmaz (T.C. Kimlik No: 62601815964), Doğum Tarihi: 12.03.1985.
+İletişim: 0532 445 67 89 / m.yilmaz@ornek.com
+Ödeme TR81 0830 1661 3186 0913 9099 60 numaralı hesaba yapılacaktır.
+
+Dosyanın 12345678901 sayılı dosya ile birleştirilmesine, tanık dinlenmesine ve
+davacının sağlık raporunun celbine karar verildi.
+```
+
+Komut:
+
+```bash
+kvkk-maskeleme demo.txt
+```
+
+Çıktı (stdout):
+
+```
+ANTALYA 3. ASLİYE HUKUK MAHKEMESİ
+Dosya No: 2026/1487 E.
+
+Davacı Mehmet Yılmaz (T.C. Kimlik No: <TC_1>), Doğum Tarihi: <DOGUM_TARIHI_1>.
+İletişim: <TELEFON_1> / <EPOSTA_1>
+Ödeme <IBAN_1> numaralı hesaba yapılacaktır.
+
+Dosyanın 12345678901 sayılı dosya ile birleştirilmesine, tanık dinlenmesine ve
+davacının sağlık raporunun celbine karar verildi.
+```
+
+Uyarılar (stderr):
+
+```
+Maskelendi: DOGUM_TARIHI×1, EPOSTA×1, IBAN×1, TC×1, TELEFON×1
+Bu belge özel nitelikli kişisel veri içeriyor olabilir (SAGLIK). KVKK md. 6 uyarınca işlenmesi açık rıza veya kanunda öngörülen bir hâle bağlıdır. Maskeleme bu veriyi kaldırmaz.
+```
+
+Dikkat edilecek noktalar:
+
+- `12345678901` dokunulmadan kalıyor — on bir hane ama TC kimlik kontrol
+  hanesini geçmiyor, yani bu bir dosya numarası, bir kimlik numarası
+  değil.
+- `Doğum Tarihi:` etiketi olduğu gibi duruyor, yalnızca değer
+  değiştiriliyor; belge okunabilir kalıyor.
+- IBAN boşluklarla yazılmış olsa da yakalanıyor.
+- "tanık dinlenmesine" ifadesi, "din" kökünü içermesine rağmen dini
+  veri sayılmıyor.
+- Özet stderr'e gidiyor, bu yüzden `> temiz.txt` yalnızca maskelenmiş
+  belgeyi verir.
+- "sağlık raporu" ifadesi özel nitelikli veri olarak işaretleniyor
+  (KVKK md. 6); bu satır maskelenmiyor, yalnızca uyarı stderr'e
+  ekleniyor — belge hâlâ okunabilir ama insan gözden geçirmesi
+  gerektiği söyleniyor.
+
 ## Durum
 
 Desen katmanı çalışıyor. Model katmanının **altyapısı hazır, modeli
