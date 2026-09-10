@@ -1,16 +1,17 @@
 # kvkk-maskeleme
 
-Türkçe metinlerde kişisel veri tespiti ve **maskeleme**. Belgeleri
-işlemeden önce, özellikle bulut tabanlı bir modele göndermeden önce
-doğrudan tanımlayıcıları yer tutucuyla değiştirir.
+Personal data detection and **masking** for Turkish text. Replaces direct
+identifiers with placeholders before a document is processed, in
+particular before it is sent to a cloud-based model.
 
-> **Bu araç veriyi anonim hale getirmez.** Maskeleme geri
-> döndürülebilir olduğu için çıktı KVKK anlamında hâlâ kişisel veridir.
-> Ayrıntı için [KVKK kapsamı](#kvkk-kapsamı) bölümüne bakın.
+> **This tool does not anonymise data.** Because masking is reversible,
+> the output is still personal data under Turkey's personal data
+> protection law (KVKK, Law No. 6698). See [Scope under
+> KVKK](#scope-under-kvkk) for detail.
 
-## Örnek
+## Example
 
-Girdi (`demo.txt`):
+Input (`demo.txt`):
 
 ```
 ANTALYA 3. ASLİYE HUKUK MAHKEMESİ
@@ -24,13 +25,13 @@ Dosyanın 12345678901 sayılı dosya ile birleştirilmesine, tanık dinlenmesine
 davacının sağlık raporunun celbine karar verildi.
 ```
 
-Komut:
+Command:
 
 ```bash
 kvkk-maskeleme demo.txt
 ```
 
-Çıktı (stdout):
+Output (stdout):
 
 ```
 ANTALYA 3. ASLİYE HUKUK MAHKEMESİ
@@ -44,89 +45,95 @@ Dosyanın 12345678901 sayılı dosya ile birleştirilmesine, tanık dinlenmesine
 davacının sağlık raporunun celbine karar verildi.
 ```
 
-Uyarılar (stderr):
+Warnings (stderr):
 
 ```
 Maskelendi: DOGUM_TARIHI×1, EPOSTA×1, IBAN×1, TC×1, TELEFON×1
 Bu belge özel nitelikli kişisel veri içeriyor olabilir (SAGLIK). KVKK md. 6 uyarınca işlenmesi açık rıza veya kanunda öngörülen bir hâle bağlıdır. Maskeleme bu veriyi kaldırmaz.
 ```
 
-Dikkat edilecek noktalar:
+Points to note:
 
-- `12345678901` dokunulmadan kalıyor — on bir hane ama TC kimlik kontrol
-  hanesini geçmiyor, yani bu bir dosya numarası, bir kimlik numarası
-  değil.
-- `Doğum Tarihi:` etiketi olduğu gibi duruyor, yalnızca değer
-  değiştiriliyor; belge okunabilir kalıyor.
-- IBAN boşluklarla yazılmış olsa da yakalanıyor.
-- "tanık dinlenmesine" ifadesi, "din" kökünü içermesine rağmen dini
-  veri sayılmıyor.
-- Özet stderr'e gidiyor, bu yüzden `> temiz.txt` yalnızca maskelenmiş
-  belgeyi verir.
-- "sağlık raporu" ifadesi özel nitelikli veri olarak işaretleniyor
-  (KVKK md. 6); bu satır maskelenmiyor, yalnızca uyarı stderr'e
-  ekleniyor — belge hâlâ okunabilir ama insan gözden geçirmesi
-  gerektiği söyleniyor.
+- `12345678901` is left untouched — eleven digits, but it fails the TC
+  identity number check digit, so it is a file number, not an identity
+  number.
+- The `Doğum Tarihi:` label stays as it is; only the value is replaced,
+  so the document stays readable.
+- The IBAN is caught even though it is written with spaces.
+- The phrase "tanık dinlenmesine" ("hearing the witness") is not counted
+  as religious data, even though it contains the root "din" ("religion").
+- The summary goes to stderr, so `> temiz.txt` captures only the masked
+  document.
+- The phrase "sağlık raporu" ("health report") is flagged as a special
+  category of personal data (KVKK Article 6); this line is not masked,
+  only a warning is appended to stderr — the document stays readable, but
+  it is flagged as needing human review.
 
-## Durum
+## Status
 
-Desen katmanı çalışıyor. Model katmanının **altyapısı hazır, modeli
-bağlı değil** — arayüz, cevap çözümleme, birleştirme ve ölçüm yazıldı
-ve test edildi; `OllamaSaglayici` verildiğinde devreye giriyor.
+The pattern layer works. The model layer's **infrastructure is ready,
+but no model is wired in** — the interface, response parsing, merging
+and measurement are written and tested; it activates once an
+`OllamaSaglayici` is supplied.
 
-| Tür | Durum | Yöntem |
+| Type | Status | Method |
 |---|---|---|
-| TC kimlik no | ✓ | desen + kontrol hanesi |
-| Vergi kimlik no | ✓ | desen + kontrol hanesi |
-| IBAN | ✓ | desen + mod-97 |
-| Kart numarası | ✓ | desen + Luhn |
-| Telefon | ✓ | desen |
-| Plaka | ✓ | desen |
-| E-posta | ✓ | desen |
-| Pasaport no | ✓ | bağlam çıpası |
-| Doğum tarihi | ✓ | bağlam çıpası |
-| SGK sicil no | ✓ | bağlam çıpası |
-| **İsim** | altyapı hazır | model katmanı |
-| **Adres** | altyapı hazır | model katmanı |
-| **Kurum** | altyapı hazır | model katmanı |
+| TC identity number | ✓ | pattern + check digit |
+| Tax identification number | ✓ | pattern + check digit |
+| IBAN | ✓ | pattern + mod-97 |
+| Card number | ✓ | pattern + Luhn |
+| Phone | ✓ | pattern |
+| Number plate | ✓ | pattern |
+| Email | ✓ | pattern |
+| Passport number | ✓ | context anchor |
+| Date of birth | ✓ | context anchor |
+| SGK registration number | ✓ | context anchor |
+| **Name** | infrastructure ready | model layer |
+| **Address** | infrastructure ready | model layer |
+| **Institution** | infrastructure ready | model layer |
 
-## KVKK kapsamı
+## Scope under KVKK
 
-Bu bölüm aracın ne yapıp ne yapmadığını netleştirmek için var. Yanlış
-anlaşılması uyum açığı doğurur.
+This section exists to make clear what the tool does and does not do.
+Misunderstanding it creates a compliance gap.
 
-### Maskeleme, anonimleştirme değildir
+### Masking is not anonymisation
 
-KVKK'da anonim hale getirme, verinin başka verilerle eşleştirilse dahi
-hiçbir surette bir kişiyle ilişkilendirilememesi demek. Anonim hale
-getirilmiş veri kanun kapsamından çıkar.
+Under KVKK, anonymisation means that data can no longer be linked to a
+person under any circumstances, even when matched against other data.
+Anonymised data falls outside the scope of the law.
 
-Bu araç **takma adlaştırma / maskeleme** yapıyor: `<TC_1>` yer tutucusu
-ve yerelde duran bir eşleme tablosu. Eşleme varken işlem geri
-alınabiliyor, dolayısıyla:
+This tool performs **pseudonymisation / masking**: a `<TC_1>` placeholder
+plus a mapping table that stays local. As long as the mapping exists,
+the operation is reversible, and therefore:
 
-- Çıktı **hâlâ kişisel veridir**
-- Aydınlatma, saklama, güvenlik yükümlülükleri **devam eder**
-- Veri KVKK kapsamından **çıkmaz**
+- The output **is still personal data**
+- The duty to inform, and retention and security obligations, **still
+  apply**
+- The data **does not fall outside the scope of KVKK**
 
-Kazanç şurada: veri bulut tabanlı bir modele gönderilirken doğrudan
-tanımlayıcılar dışarı çıkmıyor. Bu risk azaltmadır, muafiyet değildir.
+The benefit is this: direct identifiers do not leave the premises when
+data is sent to a cloud-based model. This is risk reduction, not
+exemption.
 
-Gerçekten anonimleştirmek istiyorsanız eşleme tablosunu silin ve
-`geri_al` yolunu kapatın — ama o zaman bile yeniden tanımlanma riski
-için metnin geri kalanını değerlendirmeniz gerekir.
+If you actually want to anonymise, delete the mapping table and close
+off the `geri_al` (restore) path — but even then you still have to
+assess the rest of the text for re-identification risk.
 
-### Özel nitelikli veriler kapsam dışında
+### Special categories are out of scope
 
-KVKK madde 6'ya göre özel nitelikli kişisel veriler şunlar: ırk, etnik
-köken, siyasi düşünce, felsefi inanç, din, mezhep veya diğer inançlar,
-kılık ve kıyafet, dernek/vakıf/sendika üyeliği, sağlık, cinsel hayat,
-**ceza mahkûmiyeti ve güvenlik tedbirleri**, biyometrik ve genetik veri.
+Under KVKK Article 6, special categories of personal data are: race,
+ethnic origin, political opinion, philosophical belief, religion, sect
+or other belief, dress and appearance, membership of an association,
+foundation or trade union, health, sex life, **criminal conviction and
+security measures**, biometric and genetic data.
 
-Bu veriler **maskelenmez, işaretlenir.** Sebebi şu: özel nitelikli veri
-bir alan değil, bağlamdır. "Sanık daha önce uyuşturucu kullanmaktan
-sabıkalıdır" cümlesinde maskelenecek bir alan yoktur — cümlenin kendisi
-veridir. Maskelemeye kalkışmak belgeyi anlamsızlaştırır.
+This data **is not masked, it is flagged.** The reason: special category
+data is not a field, it is context. In the sentence "Sanık daha önce
+uyuşturucu kullanmaktan sabıkalıdır" ("The defendant has a prior
+conviction for drug use") there is no field to mask — the sentence
+itself is the data. Attempting to mask it would make the document
+meaningless.
 
 ```python
 from kvkk_maskeleme import incele
@@ -144,94 +151,96 @@ işlenmesi açık rıza veya kanunda öngörülen bir hâle bağlıdır.
 Maskeleme bu veriyi kaldırmaz.
 ```
 
-Kategoriler kanundaki sırayla ve kanun terminolojisiyle adlandırıldı;
-uyum çalışması yapan biri çıktıyı doğrudan maddeye eşleyebilsin diye.
+The categories are named in the law's order and with the law's
+terminology, so that someone doing compliance work can map the output
+directly onto the article.
 
-**Hata dengesi burada terstir.** Tanımlayıcı katmanında yanlış pozitif
-kötüdür; burada yanlış negatif kötüdür. Boşuna işaretlenen belge bir
-insanın birkaç dakikasına mal olur, kaçan belge KVKK ihlaline. Sözlük
-katmanı bu yüzden bilerek cömert.
+**The error balance is inverted here.** In the identifier layer, a false
+positive is bad; here, a false negative is bad. A document flagged
+unnecessarily costs a person a few minutes; a document that slips
+through costs a KVKK violation. The dictionary layer is deliberately
+generous because of this.
 
-Sağlayıcı verilirse model katmanı da çalışır ve sözlüğün kaçırdığı
-bağlamsal ifadeleri ekler.
+If a provider is supplied, the model layer also runs and adds the
+contextual expressions the dictionary misses.
 
-### Yeniden tanımlanma
+### Re-identification
 
-Doğrudan tanımlayıcılar kaldırılsa bile bir belge kişiyi
-tanımlayabilir: dava türü, tarih, mahkeme ve olayın kendine özgü
-ayrıntıları birleşince kimlik ortaya çıkabilir. KVKK'nın tanımı
-"kimliği belirli **veya belirlenebilir**" diyor. Bu araç belirlenebilir
-olma riskini ölçmüyor.
+Even with direct identifiers removed, a document can still identify a
+person: the case type, date, court and the case's own idiosyncratic
+details can combine to reveal identity. KVKK's definition says
+"identified **or identifiable**." This tool does not measure the risk of
+being identifiable.
 
-## Kurulum
+## Installation
 
-Kurulum gerekmiyor:
+No installation needed:
 
 ```bash
 uvx --from git+https://github.com/parttimegod/kvkk-maskeleme kvkk-maskeleme dosya.txt
 ```
 
-Kalıcı kurmak isterseniz:
+To install it permanently:
 
 ```bash
 uv tool install git+https://github.com/parttimegod/kvkk-maskeleme
 kvkk-maskeleme dosya.txt
 ```
 
-Kütüphane olarak:
+As a library:
 
 ```bash
 uv add git+https://github.com/parttimegod/kvkk-maskeleme
 ```
 
-Gereksinimler: Python 3.11+ ve [uv](https://docs.astral.sh/uv/). Paketin
-kendisinin bağımlılığı yok, yalnızca standart kütüphane.
+Requirements: Python 3.11+ and [uv](https://docs.astral.sh/uv/). The
+package itself has no dependencies, only the standard library.
 
-## Komut satırı
+## Command line
 
 ```bash
-kvkk-maskeleme dosya.txt                 # maskele, stdout'a yaz
+kvkk-maskeleme dosya.txt                 # mask, write to stdout
 kvkk-maskeleme dosya.txt -o temiz.txt
 cat dosya.txt | kvkk-maskeleme
-kvkk-maskeleme dosya.txt --sadece-incele # yalnızca özel nitelikli raporu
+kvkk-maskeleme dosya.txt --sadece-incele # special-category report only
 kvkk-maskeleme dosya.txt --json
 ```
 
-Uyarılar ve özet **stderr**'e gider, çıktı stdout'a. Böylece
-`kvkk-maskeleme dosya.txt > temiz.txt` yazan biri uyarıyı görür ama
-dosyası kirlenmez.
+Warnings and the summary go to **stderr**, output goes to stdout. So
+someone who writes `kvkk-maskeleme dosya.txt > temiz.txt` still sees the
+warning, but their file does not get polluted.
 
-Eşleme tablosu **istenmedikçe yazılmaz** — bütün kişisel veriyi düz
-metin içerdiği için maskelenmiş çıktının yanına sessizce bırakılması
-maskelemeyi anlamsız kılar:
+The mapping table **is not written unless asked for** — since it
+contains all the personal data in plain text, leaving it silently next
+to the masked output would make the masking pointless:
 
 ```bash
 kvkk-maskeleme dosya.txt --esleme harita.json
 # UYARI: harita.json bütün kişisel veriyi düz metin içeriyor.
 ```
 
-Çıkış kodları betikler için: `0` temiz, `1` hata, `2` özel nitelikli
-veri bulundu (`--kati` ile).
+Exit codes for scripts: `0` clean, `1` error, `2` special category data
+found (with `--kati`).
 
 ```bash
-kvkk-maskeleme dosya.txt --kati > temiz.txt || echo "elle inceleme gerekiyor"
+kvkk-maskeleme dosya.txt --kati > temiz.txt || echo "manual review needed"
 ```
 
-## Kullanım
+## Usage
 
 ```python
 from kvkk_maskeleme import maskele, geri_al
 
 sonuc = maskele(metin)
 
-sonuc.metin      # maskelenmiş metin
+sonuc.metin      # masked text
 sonuc.eslesme    # {"<TC_1>": "12345678901", ...}
 sonuc.ozet()     # {"TC": 2, "IBAN": 1}
 
-geri_al(sonuc.metin, sonuc.eslesme)   # özgün metin
+geri_al(sonuc.metin, sonuc.eslesme)   # original text
 ```
 
-Örnek çıktı (sentetik belge):
+Example output (synthetic document):
 
 ```
 DAVACI     : Hatice Özdemir (T.C. Kimlik No: <TC_1>)
@@ -244,105 +253,116 @@ AÇIKLAMALAR: Müvekkilim Hatice Özdemir, davalıdan olan alacağını
 <IBAN_1> numaralı hesabına havale yoluyla talep etmiş...
 ```
 
-Kimlik numaraları, telefon ve IBAN maskelendi. **İsimler ve adres
-duruyor** — Aşama 2 bunun için.
+ID numbers, phone and IBAN were masked. **Names and address remain** —
+that is what Phase 2 is for.
 
-## Tasarım
+The library's own messages, warnings and docstrings are in Turkish,
+because the input domain is Turkish text.
 
-**Gerçek belgeler temiz yazılmıyor.** İnsanlar kimlik numarasını
-boşlukla, noktayla, tireyle yazıyor; taranmış belgelerde OCR harfle
-rakamı karıştırıyor. İki tolerans katmanı var:
+## Design
 
-```
-760 487 647 54     ayraç toleransı
-760.487.64754      ayraç toleransı
-76O48764754        OCR onarımı (O → 0)
-760487647S4        OCR onarımı (S → 5)
-```
-
-OCR onarımı **tahmin değil, doğrulanmış onarım**: harf yerine rakam
-konup kontrol hanesi tekrar hesaplanıyor, geçmezse aday atılıyor.
-`SOSYOLOJIDE` gibi harf ağırlıklı diziler bu yüzden kimlik sayılmıyor.
-Bulgunun `kaynak` alanı hangi yolla bulunduğunu söylüyor (`desen`,
-`ayrac`, `ocr`) -- onarılmış bir kaydı insanın gözden geçirmesi
-gerekebilir.
-
-**Kontrol hanesi olmayan türlerde bağlam çıpası kullanılıyor.**
-Pasaport numarası, doğum tarihi ve SGK sicilinde doğrulanacak bir
-kontrol hanesi yok; desen tek başına yanlış pozitif üretir. `01.01.2026`
-bir doğum tarihi de olabilir, bir sözleşme tarihi de — ayırt eden şey
-yanındaki etiket.
+**Real documents are not written cleanly.** People write identity
+numbers with spaces, dots, dashes; in scanned documents, OCR confuses
+letters with digits. There are two tolerance layers:
 
 ```
-Doğum Tarihi: 12.03.1985     →  yakalanır
-Duruşma 15.02.2026 tarihinde →  yakalanmaz
+760 487 647 54     separator tolerance
+760.487.64754      separator tolerance
+76O48764754        OCR repair (O → 0)
+760487647S4        OCR repair (S → 5)
 ```
 
-Bu bilinçli bir eksiklik: etiketsiz yazılmış bir pasaport numarası
-kaçıyor. Alternatifi, adliye metnindeki her tarihi doğum tarihi sanmak
-olurdu ve çıktı kullanılamaz hale gelirdi.
+OCR repair is **a verified repair, not a guess**: a digit is substituted
+for the letter and the check digit is recalculated; if it does not
+pass, the candidate is dropped. That is why letter-heavy strings like
+`SOSYOLOJIDE` ("in sociology") are not counted as an identity number. A
+finding's `kaynak` (source) field says which route found it (`desen`,
+`ayrac`, `ocr` — "pattern", "separator", "ocr") — a repaired record may
+need human review.
 
-Etiket maskelenmiyor, yalnızca değer: `Doğum Tarihi: <DOGUM_TARIHI_1>`
-okunabilir kalıyor.
+**Types without a check digit use a context anchor.** Passport number,
+date of birth and SGK registration number have no check digit to
+validate against; the pattern alone produces false positives.
+`01.01.2026` could be a date of birth or a contract date — what
+distinguishes them is the label next to it.
 
-**Desen tek başına yetmiyor.** "11 haneli sayı" deseni dosya
-numarasını, tutarı, tarih dizisini de yakalar. TC kimlik, VKN, IBAN ve
-kart numarasının kontrol hanesi var; doğrulanmayan aday eleniyor.
-Yanlış pozitif bu sayede pratikte sıfır.
+```
+Doğum Tarihi: 12.03.1985     →  caught
+Duruşma 15.02.2026 tarihinde →  not caught
+```
 
-**Yer tutucular tutarlı.** Aynı numara metinde üç kez geçiyorsa
-üçünde de `<TC_1>` yazıyor, farklı numaralar farklı numara alıyor.
-Maskelenmiş metin okunabilir kalıyor ve "aynı kişi mi" sorusu
-cevaplanabiliyor.
+This is a deliberate gap: a passport number written without a label
+slips through. The alternative would be treating every date in a court
+text as a date of birth, which would make the output unusable.
 
-**Çıktı tekrar taranıyor.** Maskeleme bittikten sonra metin yeniden
-tespit katmanından geçiyor. Bir şey kaldıysa `SizintiHatasi` fırlıyor.
-Sessiz sızıntı, sızıntının kendisinden kötü:
+The label is not masked, only the value: `Doğum Tarihi: <DOGUM_TARIHI_1>`
+stays readable.
+
+**A pattern alone is not enough.** The "11-digit number" pattern also
+catches file numbers, amounts, date sequences. TC identity, VKN, IBAN
+and card numbers have a check digit; a candidate that does not validate
+is discarded. This keeps false positives at practically zero.
+
+**Placeholders are consistent.** If the same number appears three times
+in the text, all three get `<TC_1>`; different numbers get different
+numbers. The masked text stays readable, and the question "is this the
+same person" can still be answered.
+
+**The output is rescanned.** Once masking is done, the text is passed
+back through the detection layer. If anything is left, `SizintiHatasi`
+(LeakError) is raised. A silent leak is worse than the leak itself:
 
 ```python
-maskele(metin)                  # kirli çıktı olursa hata verir
-maskele(metin, dogrula=False)   # yalnızca test içindir
+maskele(metin)                  # raises if the output is not clean
+maskele(metin, dogrula=False)   # for tests only
 ```
 
-**Geri döndürülebilir.** Eşleme tablosu yerelde kalıyor, işlem
-zincirinden sonra metin eski haline dönebiliyor. Eşleme tablosu kişisel
-veri içerir; metinle birlikte hiçbir yere gönderilmemeli.
+**Reversible.** The mapping table stays local, so the text can be
+restored to its original form after the processing chain. The mapping
+table contains personal data; it must never be sent anywhere together
+with the text.
 
-## Model katmanı
+## Model layer
 
-İsim ve adres desenle bulunamıyor. Türkçe adların bir kısmı günlük
-kelimeyle çakışıyor — *Deniz, Umut, Şafak, Barış, Güneş* — yani "büyük
-harfle başlayan kelime" kuralı hem kaçırıyor hem yanlış yakalıyor.
+Names and addresses cannot be found with a pattern. Some Turkish first
+names overlap with everyday words — *Deniz* ("sea"), *Umut* ("hope"),
+*Şafak* ("dawn"), *Barış* ("peace"), *Güneş* ("sun") — so a "capitalised
+word" rule both misses names and catches the wrong things.
 
 ```python
 from kvkk_maskeleme import maskele, OllamaSaglayici
 
 sonuc = maskele(metin, saglayici=OllamaSaglayici(model="gemma4-abl-16k"))
-sonuc.uydurma              # modelin metinde olmayan ifadeleri
-sonuc.model_bicim_hatasi   # cevap JSON değilse
+sonuc.uydurma              # expressions the model invented that are not in the text
+sonuc.model_bicim_hatasi   # set if the response is not JSON
 ```
 
-Sağlayıcı verilmezse yalnızca desen katmanı çalışır. Arayüz tek metotluk
-bir protokol, başka bir sunucuya bağlamak kolay.
+If no provider is supplied, only the pattern layer runs. The interface
+is a single-method protocol, so wiring it up to a different backend is
+easy.
 
-**Modelden konum istemiyoruz, metin istiyoruz.** Modeller karakter
-saymayı beceremiyor; "45. karakterden 56'ya" dediğinde çoğu zaman
-yanlış oluyor. Bulduğu ifadeyi aynen yazmasını istiyoruz, konumu biz
-buluyoruz. Yan faydası: metinde geçmeyen bir ifade dönerse uydurma
-olduğu anlaşılıyor ve sayılıyor.
+**We do not ask the model for a position, we ask it for text.** Models
+are bad at counting characters; when one says "from character 45 to 56"
+it is wrong most of the time. We ask it to reproduce the expression it
+found verbatim, and we locate it ourselves. Side benefit: if it returns
+an expression that is not in the text, that is recognisable as a
+fabrication, and it gets counted as one.
 
-Çakışmada desen kazanıyor — kontrol hanesiyle doğrulanmış bir kimlik
-numarası, modelin "bu bir ad" tahmininden güvenilir.
+On conflict, the pattern wins — an identity number verified by its
+check digit is more reliable than the model's guess that "this is a
+name."
 
-## Ölçüm
+## Measurement
 
-Bu alandaki açık kaynak projelerin hiçbiri ne kadar iyi çalıştığını
-söylemiyor. "Kişisel verileri maskeler" cümlesi ölçülmeden bir şey ifade
-etmiyor; %60 recall'la çalışan bir araç çalışmıyor demektir.
+None of the open-source projects in this space state how well they
+actually work. The sentence "masks personal data" means nothing without
+a measurement; a tool running at 60% recall is a tool that does not
+work.
 
-Sentetik belgeler etiketli olduğu için gerçek recall hesaplanabiliyor.
-Ayrıca kişisel veri içermeyen adliye cümlelerinden oluşan bir küme var;
-sözlük katmanı onlardan birini işaretlerse yanlış pozitif sayılıyor.
+Because synthetic documents are labelled, actual recall can be
+calculated. There is also a set of court-text sentences containing no
+personal data; if the dictionary layer flags one of them, it counts as
+a false positive.
 
 ```python
 from kvkk_maskeleme.olcum import calistir
@@ -375,39 +395,43 @@ belge: 140
 temiz metin: 15, yanlış pozitif: 0 (0.0% belgede)
 ```
 
-Son satır cömert sözlüğün bedelini ölçüyor. Temiz cümleler bilinen
-tuzakları barındırıyor: *"tanık dinlenmesi"*, *"Aydın ili"*, *"dinlenme
-salonu"*. Bunlar işaretlenirse araç adliyede kullanılamaz hale gelir.
+The last line measures the cost of the generous dictionary. The clean
+sentences contain known traps: *"tanık dinlenmesi"* ("hearing the
+witness"), *"Aydın ili"* ("Aydın province"), *"dinlenme salonu"* ("rest
+lounge"). If these get flagged, the tool becomes unusable in a
+courthouse.
 
-Sağlayıcı verilmediğinde isim ve adres ölçüme katılmıyor; desen
-katmanının onları bulması zaten beklenmiyor, ölçüme katmak sonucu
-haksız yere düşürür.
+When no provider is supplied, names and addresses are not included in
+the measurement; the pattern layer is not expected to find them anyway,
+and including them would unfairly lower the result.
 
-## Test verisi
+## Test data
 
-Gerçek belgeyle test edilemez — kişisel veri içeren bir metni geliştirme
-sırasında kullanmak, aracın önlemeye çalıştığı ihlalin kendisi olur.
-`sentetik.py` etiketli belge üretiyor: hangi kişisel verinin metinde
-nerede olduğu biliniyor, bu sayede tespit oranı ölçülebiliyor.
+It cannot be tested with real documents — using a text containing
+personal data during development would itself be the violation the tool
+is trying to prevent. `sentetik.py` generates labelled documents: which
+personal data is where in the text is known, which makes the detection
+rate measurable.
 
 ```python
 from kvkk_maskeleme.sentetik import dilekce
 
 belge = dilekce(tohum=0)
-belge.metin        # sentetik dilekçe
+belge.metin        # synthetic petition
 belge.etiketler    # [Etiket("TC", 45, 56, "..."), ...]
 ```
 
-Üretilen kimlik numaraları kontrol hanesi bakımından geçerlidir, yani
-tespit mantığını gerçekten sınarlar. Kimseyi temsil etmezler.
+The generated identity numbers are valid with respect to the check
+digit, so they genuinely exercise the detection logic. They do not
+represent anyone.
 
-## Testler
+## Tests
 
 ```bash
 uv run pytest
 uv run ruff check .
 ```
 
-## Lisans
+## License
 
 MIT
