@@ -4,6 +4,41 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.2.0] - 2026-09-11
+
+### Added
+
+- `OllamaSaglayici` gained `dusunme` (thinking on/off, default off) and
+  `baglam` (context window size) parameters. A model left thinking can
+  consume the entire context window without ever producing an answer —
+  measured: 16384 tokens all spent thinking, `done_reason: length`, empty
+  response; the same prompt with thinking off answered correctly in 1.4
+  seconds. Left unset, Ollama's default context window on the measurement
+  machine was 4096, which silently truncates long documents.
+- Full measurement of the model layer over 140 synthetic documents: AD
+  220/220, ADRES 40/40, KURUM 60/60, all 100% — an upper bound, since the
+  generator places names in predictable labelled slots drawn from a fixed
+  list.
+
+### Changed
+
+- `OllamaSaglayici`'s default model changed from the non-existent
+  `gemma4-abl-16k` to `huihui_ai/gemma-4-abliterated:12b-qat`, picked by
+  measuring three models on the same 21 documents and prompt with thinking
+  disabled:
+
+  | model | AD | KURUM | false positives (of 17 clean) | s/document |
+  |---|---|---|---|---|
+  | gemma-4-abliterated:12b-qat | 100% | 100% | 0 | 1.6 |
+  | qwen3.5-abliterated:9b-q8_0 | 100% | 100% | 6 | 2.5 |
+  | Qwen3.6-abliterated:35b-a3b | 97% | 77.8% | 0 | 3.8 |
+
+### Fixed
+
+- The Ollama 404 path (model not installed) reported "cannot reach
+  Ollama", the same message as an unreachable service, sending users to
+  check the wrong thing.
+
 ## [0.1.1] - 2026-09-10
 
 ### Fixed

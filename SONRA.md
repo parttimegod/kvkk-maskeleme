@@ -2,13 +2,20 @@
 
 Aklıma gelen ama şimdi yapmayacağım şeyler.
 
-## Aşama 2 — model katmanı (asıl iş)
-- İsim tespiti. Desenle olmuyor; günlük kelimeyle çakışan adlar
-  (Deniz, Umut, Şafak, Barış, Güneş) bağlam istiyor.
-- Adres tespiti.
-- Kurum ve şirket adları.
-- Yerel model üzerinden, veri makineden çıkmadan.
-- Sentetik kümede isim recall'ını ölç; deterministik katmanla karşılaştır.
+## Aşama 2 — model katmanı (tamamlandı)
+İsim, adres, kurum tespiti Ollama üzerinden bağlandı ve 140 sentetik
+belge üzerinde ölçüldü: AD 220/220, ADRES 40/40, KURUM 60/60 -- üçü de
+%100. Yerel model kullanılıyor, veri makineden çıkmıyor.
+
+Ölçümün sınırı, düz konuşmak gerekirse: üretici isimleri "Davacı Ahmet
+Yılmaz" gibi önceden etiketlenmiş sabit kalıplara, sabit bir isim
+listesinden yerleştiriyor. %100 bir üst sınır -- cümle içinde etiketsiz
+geçen isimleri, günlük kelime olarak da kullanılan isim-kelimeleri
+(Deniz, Umut, Şafak, Barış, Güneş gibi) günlük kelime bağlamında, ya da
+yanlış yazılmış isimleri kapsamıyor. Bu, aşağıdaki Ölçüm bölümünde özel
+nitelikli veri recall'ı için kayıtlı olan sınırla aynı sınıftan: ölçüm
+üreticiyle kelime dağarcığı ya da yapı paylaştığında, aracı değil
+üreticiyi ölçmüş oluyorsun.
 
 ## KVKK boşlukları
 - Özel nitelikli veri artık işaretleniyor (sözlük katmanı hazır, model
