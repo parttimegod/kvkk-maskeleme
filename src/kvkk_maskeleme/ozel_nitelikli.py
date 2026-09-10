@@ -54,7 +54,7 @@ IPUCLARI: dict[str, tuple[str, ...]] = {
         "hastalik", "hastane", "teshis", "tedavi", "ameliyat",
         "engelli", "malul", "psikiyatri", "psikolojik", "recete", "epikriz",
         "kronik", "tesekkullu", "sagliksiz", "rahatsizlik", "ilac",
-        "bagimlilik", "uyusturucu", "alkolik",
+        "bagimlilik", "uyusturucu", "alkolik", "saglik", "hasta",
     ),
     "DIN_MEZHEP": (
         # "din" tam kelime; ekli hâlleri "dini" ile yakalanıyor. İkisini

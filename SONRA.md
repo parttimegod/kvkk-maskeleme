@@ -45,6 +45,16 @@ Aklıma gelen ama şimdi yapmayacağım şeyler.
 ## Ölçüm
 - Recall/precision tablosunu README'ye koy.
 - Rakip araçlarla aynı sentetik küme üzerinde karşılaştırma.
+- Özel nitelikli veri recall'ı (olcum.py, %100) sentetik.py'nin ürettiği
+  cümlelere karşı ölçülüyor, ama o cümleler sözlükteki köklerle aynı
+  kelimeleri kullanıyor (ceza_dosyasi() "mahkûmiyeti" diyor, sözlükte
+  "mahkumiyet" kökü var; saglik_raporu() "DNA incelemesi" diyor,
+  sözlükte "dna" kökü var). Yani ölçüm sözlüğü kendi kelime dağarcığına
+  karşı sınıyor -- bağımsız bir doğrulama değil, bir üst sınır.
+  tests/test_ozel_nitelikli_bagimsiz.py bunu sentetik.py'den bağımsız
+  sekiz cümleyle tekrarladı: sekizden yalnızca biri doğru kategoriyle
+  yakalandı. Sözlüğü sentetik olmayan gerçek (anonimleştirilmiş)
+  belgelerle sınamak ve gerçek recall'ı ayrıca raporlamak gerekiyor.
 
 ## Ambalaj
 - PyPI.
