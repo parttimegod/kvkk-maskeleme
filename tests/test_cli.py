@@ -7,6 +7,8 @@ görmeli ama dosyası kirlenmemeli.
 """
 
 import json
+import subprocess
+import sys
 
 import pytest
 
@@ -141,3 +143,42 @@ def test_sizinti_hatasi_1_donuyor(kirli, monkeypatch, capsys):
 
     assert main([str(kirli)]) == CIKIS_HATA
     assert "HATA" in capsys.readouterr().err
+
+
+def test_stdout_boru_hatti_utf8_kaliyor(tmp_path):
+    """Windows'ta stdout borulandığında (`> dosya.txt`) konsol kod
+    sayfası (genelde cp1254) miras alınıyordu; Türkçe karakterler
+    bozuluyordu. `-o` ile dosyaya yazmak zaten UTF-8'di, fark buradaydı.
+
+    Gerçek süreci başlatıp stdout'u boru olarak yakalıyoruz -- capsys
+    bu hatayı sergilemez, çünkü pytest'in kendi yakalaması zaten UTF-8
+    varsayar. `sys.executable -m kvkk_maskeleme.cli` ile alt süreç
+    başlatmak, `kvkk-maskeleme dosya.txt > cikti.txt` komutunun aynısını
+    taklit eder.
+    """
+    girdi = tmp_path / "girdi.txt"
+    girdi.write_text(
+        "Davacının sağlık raporu ve iş göremezlik durumu şüpheli.",
+        encoding="utf-8",
+    )
+
+    sonuc = subprocess.run(
+        [sys.executable, "-m", "kvkk_maskeleme.cli", str(girdi)],
+        capture_output=True,
+    )
+
+    cikti = sonuc.stdout.decode("utf-8")
+
+    # Konsol kod sayfasına (cp1254) düşseydi bu satır UnicodeDecodeError
+    # ya da yanlış kod noktalarıyla sonuçlanırdı. Kod noktalarını
+    # doğrudan sınıyoruz; terminalin kendisi Türkçe karakteri yanlış
+    # gösterse bile decode edilmiş str nesnesi burada doğru.
+    beklenen = "Davacının sağlık raporu ve iş göremezlik durumu şüpheli."
+    assert [hex(ord(k)) for k in cikti.strip()] == [hex(ord(k)) for k in beklenen]
+
+    # Özellikle bozulmaya en açık Türkçe karakterler.
+    assert hex(ord("ğ")) == "0x11f"
+    assert hex(ord("ş")) == "0x15f"
+    assert hex(ord("ı")) == "0x131"
+    for harf in "ğşı":
+        assert ord(harf) in {ord(c) for c in cikti}

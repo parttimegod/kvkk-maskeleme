@@ -103,7 +103,21 @@ def _rapor_yaz(rapor, json_mu: bool) -> None:
             print(f"  {b.kategori:22s} {b.kanit!r}  [{b.kaynak}]")
 
 
+def _stdout_utf8_yap() -> None:
+    """stdout/stderr'i UTF-8'e zorlar.
+
+    Windows'ta konsol kod sayfası (genelde cp1254) miras alınıyor;
+    `-o` ile dosyaya yazarken UTF-8 açıkça belirtiliyor ama stdout'a
+    yazarken belirtilmiyor, bu yüzden `> dosya.txt` ile yönlendirmede
+    Türkçe karakterler bozuluyordu.
+    """
+    for akim in (sys.stdout, sys.stderr):
+        if hasattr(akim, "reconfigure"):
+            akim.reconfigure(encoding="utf-8")
+
+
 def main(argv: list[str] | None = None) -> int:
+    _stdout_utf8_yap()
     args = _ayristirici().parse_args(argv)
     metin = _oku(args.dosya)
     rapor = incele(metin)
