@@ -304,6 +304,12 @@ TEMIZ_CUMLELER = (
     "Keşif şafak vakti yapılmıştır.",
     "Güneş açtıktan sonra keşfe devam edilmiştir.",
     "Dilekçe sevgi ve saygı ifadeleriyle sona ermektedir.",
+    # zor_adres ile aynı amaç: yer sözcüğü geçiyor ama kişisel adres yok.
+    "Duruşma Antalya Adliye Sarayı'nda görülmüştür.",
+    "Dosya yetkisizlik nedeniyle Ankara'ya gönderilmiştir.",
+    # "mahallinde" (olay yerinde) "mahalle" değildir -- bilinçli yakın-ıskalama.
+    "Keşif mahallinde gerekli inceleme yapılmıştır.",
+    "Tapu kaydı ilgili tapu müdürlüğünden celp edilmiştir.",
 )
 
 
@@ -315,13 +321,14 @@ def temiz_belgeler() -> list[Belge]:
 def ornekler(adet: int = 20) -> list[Belge]:
     """Ölçüm için belge kümesi.
 
-    Dokuz tür. Hepsi bir arada her tanımlayıcı türünü en az bir kez
+    On tür. Hepsi bir arada her tanımlayıcı türünü en az bir kez
     içeriyor; bir tür hiçbir belgede geçmiyorsa ölçüm tablosu tam
     görünüp aslında eksik olur.
 
     Duruşma tutanağı bilerek temiz ve yanlış pozitif tuzakları taşıyor.
-    zor_metin ise adları etiketsiz, düzyazı içinde taşıyor -- AD/ADRES
-    recall'ının üreteci değil aracı ölçmesi için.
+    zor_metin adları etiketsiz, düzyazı içinde taşıyor; zor_adres aynısını
+    adresler için yapıyor -- AD/ADRES recall'ının üreteci değil aracı
+    ölçmesi için.
     """
     belgeler = []
     for i in range(adet):
@@ -334,6 +341,7 @@ def ornekler(adet: int = 20) -> list[Belge]:
         belgeler.append(fatura(i))
         belgeler.append(saglik_raporu(i))
         belgeler.append(zor_metin(i))
+        belgeler.append(zor_adres(i))
     return belgeler
 
 
@@ -464,6 +472,72 @@ def zor_metin(tohum: int = 0) -> Belge:
          "oluşturmaktadır. Taraf vekillerinin beyanları ve dosyadaki "
          "belgeler birlikte değerlendirilerek aşağıdaki şekilde hüküm "
          "kurulmuştur.\n", None),
+    ])
+
+
+def zor_adres(tohum: int = 0) -> Belge:
+    """Etiketsiz, adliye diline yakın adresler: ADRES hep "ADRES :" gibi
+    öngörülebilir bir etiketin ardından gelmiyor.
+
+    Bugüne dek ölçülen ADRES recall'ı, adresin hep bu tür bir etiketin
+    hemen ardından geldiği belgelere dayanıyordu -- bu araç değil
+    üreteci ölçmek demekti (zor_metin'in AD için yaptığı düzeltmenin
+    aynısı, burada ADRES için). Burada adres; adres sözcüğü kendisinden
+    SONRA gelerek, kesme işaretli hâl ekiyle, tam idari zincir olarak,
+    sadece mahalle adıyla ya da hiçbir adres sözcüğü olmadan geçiyor.
+
+    Etiket sınırı: Türkçe hâl eki cümleye ait, adrese değil -- zor_metin'in
+    ad etiketlerinde izlenen ilkenin aynısı. "Sokak'taki" içinde etiketlenen
+    kısım "Sokak"tır, "'taki" değildir; "Mahallesi'nde" içinde etiketlenen
+    kısım "Mahallesi"dir, "'nde" değildir.
+    """
+    r = random.Random(tohum + 9000)
+
+    # şekil 1: adres önce, "adresinde" sözcüğü ondan SONRA (rastgele_adres'i
+    # olduğu gibi kullanıyor).
+    adres1 = rastgele_adres(r)
+
+    # şekil 2: mahalle + sokak, kesme işaretli hâl ekiyle. "'taki" sabit
+    # çünkü "Sokak" hep aynı ünsüz/ünlüyle bitiyor (kalın, ünsüz-son).
+    mahalle2 = r.choice(MAHALLELER)
+    sokak2 = r.randint(1, 90)
+    adres2 = f"{mahalle2} Mahallesi {sokak2}. Sokak"
+
+    # şekil 3: tam idari zincir (il-ilçe-mahalle-sokak-no).
+    il3 = r.choice(ILLER)
+    mahalle3 = r.choice(MAHALLELER)
+    sokak3 = r.randint(1, 90)
+    no3 = r.randint(1, 60)
+    adres3 = f"{il3} ili Muratpaşa ilçesi {mahalle3} Mahallesi {sokak3}. Sokak No: {no3}"
+
+    # şekil 4: sadece mahalle adı, ikametgah olarak. "'nde" sabit çünkü
+    # "Mahallesi" hep aynı ünlüyle bitiyor (ince, ünlü-son).
+    mahalle4 = r.choice(MAHALLELER)
+    adres4 = f"{mahalle4} Mahallesi"
+
+    # şekil 5: yakınında hiçbir adres sözcüğü yok -- "numarasına" var ama
+    # "adres" sözcüğü hiç geçmiyor.
+    mahalle5 = r.choice(MAHALLELER)
+    cadde5 = r.randint(1, 90)
+    no5 = r.randint(1, 60)
+    adres5 = f"{mahalle5} Mahalle {cadde5}. Cadde No: {no5}"
+
+    return _yerlestir([
+        (f"ANTALYA {r.randint(1, 12)}. ASLİYE HUKUK MAHKEMESİ\n\n", None),
+        ("GEREKÇELİ KARAR\n\n", None),
+        ("Dosya kapsamında yapılan incelemede, Müvekkil ", None),
+        (adres1, "ADRES"),  # şekil 1
+        (" adresinde ikamet etmektedir. Yapılan tebligatta muhatabın ", None),
+        (adres2, "ADRES"),  # şekil 2
+        ("'taki dairede oturmaktadır bilgisi edinilmiştir. Taşınmaz ", None),
+        (adres3, "ADRES"),  # şekil 3
+        (" adresinde kayıtlıdır. Davalı, ", None),
+        (adres4, "ADRES"),  # şekil 4
+        ("'nde ikamet etmektedir. Tebligat ", None),
+        (adres5, "ADRES"),  # şekil 5
+        (" numarasına yapılmıştır. Taraf vekillerinin beyanları ve "
+         "dosyadaki belgeler birlikte değerlendirilerek aşağıdaki "
+         "şekilde hüküm kurulmuştur.\n", None),
     ])
 
 
