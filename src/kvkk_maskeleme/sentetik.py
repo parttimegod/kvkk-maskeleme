@@ -37,6 +37,15 @@ ILLER = ["Antalya", "İstanbul", "Ankara", "İzmir", "Bursa", "Konya", "Adana"]
 
 MAHALLELER = ["Cumhuriyet", "Fatih", "Yeni", "Bahçelievler", "Kızılay", "Merkez"]
 
+# İlçe ile il tutarlı olmalı: "İzmir ili Muratpaşa ilçesi" diye bir yer
+# yok ve Türkçe okuyan biri bunu hemen görür. Sentetik belge gerçekçi
+# değilse ölçüm de gerçekçi değildir.
+ILCELER = {
+    "Antalya": "Muratpaşa", "İstanbul": "Kadıköy", "Ankara": "Çankaya",
+    "İzmir": "Konak", "Bursa": "Osmangazi", "Konya": "Selçuklu",
+    "Adana": "Seyhan",
+}
+
 
 def _rakam_dizisi(r: random.Random, n: int, ilk_sifir_olmasin: bool = False) -> str:
     ilk = r.randint(1 if ilk_sifir_olmasin else 0, 9)
@@ -508,7 +517,10 @@ def zor_adres(tohum: int = 0) -> Belge:
     mahalle3 = r.choice(MAHALLELER)
     sokak3 = r.randint(1, 90)
     no3 = r.randint(1, 60)
-    adres3 = f"{il3} ili Muratpaşa ilçesi {mahalle3} Mahallesi {sokak3}. Sokak No: {no3}"
+    adres3 = (
+        f"{il3} ili {ILCELER[il3]} ilçesi {mahalle3} Mahallesi "
+        f"{sokak3}. Sokak No: {no3}"
+    )
 
     # şekil 4: sadece mahalle adı, ikametgah olarak. "'nde" sabit çünkü
     # "Mahallesi" hep aynı ünlüyle bitiyor (ince, ünlü-son).
@@ -520,16 +532,17 @@ def zor_adres(tohum: int = 0) -> Belge:
     mahalle5 = r.choice(MAHALLELER)
     cadde5 = r.randint(1, 90)
     no5 = r.randint(1, 60)
-    adres5 = f"{mahalle5} Mahalle {cadde5}. Cadde No: {no5}"
+    adres5 = f"{mahalle5} Mahallesi {cadde5}. Cadde No: {no5}"
 
     return _yerlestir([
         (f"ANTALYA {r.randint(1, 12)}. ASLİYE HUKUK MAHKEMESİ\n\n", None),
         ("GEREKÇELİ KARAR\n\n", None),
-        ("Dosya kapsamında yapılan incelemede, Müvekkil ", None),
+        ("Dosya kapsamında yapılan incelemede, müvekkilin ", None),
         (adres1, "ADRES"),  # şekil 1
-        (" adresinde ikamet etmektedir. Yapılan tebligatta muhatabın ", None),
+        (" adresinde ikamet ettiği anlaşılmıştır. Yapılan tebligatta "
+         "muhatabın ", None),
         (adres2, "ADRES"),  # şekil 2
-        ("'taki dairede oturmaktadır bilgisi edinilmiştir. Taşınmaz ", None),
+        ("'taki dairede oturduğu bilgisi edinilmiştir. Taşınmaz ", None),
         (adres3, "ADRES"),  # şekil 3
         (" adresinde kayıtlıdır. Davalı, ", None),
         (adres4, "ADRES"),  # şekil 4
