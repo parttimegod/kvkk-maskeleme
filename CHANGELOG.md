@@ -4,6 +4,46 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0] - 2026-09-11
+
+AD (name) recall went 100% → 96.7% → 99.5% across this release. The
+100% was worse than the 99.5% despite being the higher number, because
+it was measured against a generator that only ever placed names in
+predictable labelled slots — a fair test of reading a label off a
+document, not of finding a name that isn't wearing one.
+
+### Added
+
+- `zor_metin`, a synthetic-document generator that places names in
+  unlabelled prose: bare surnames, case-inflected names, names that are
+  also everyday Turkish words, and names not anchored to a role label.
+  Six new trap sentences in `TEMIZ_CUMLELER` covering the same
+  everyday-word names used as ordinary words (deniz, umut, şafak, barış,
+  güneş).
+- `soyadi_yay`, which deterministically propagates a person's surname to
+  its later bare occurrences once their full name has been found
+  elsewhere in the same document — with a guard so "Aydın ili" (a
+  province) is not masked as if Aydın were a person.
+- `test_butun_ureticiler_ornekleme_giriyor`, a guard test asserting
+  every synthetic-document generator function is actually wired into
+  `ornekler()`, so a generator that is defined but never sampled fails
+  the test suite instead of silently going unmeasured.
+
+### Changed
+
+- Model-found records now carry `kaynak="model"` instead of the
+  incorrect `kaynak="desen"`; records added by surname propagation carry
+  `kaynak="soyad"`.
+- `ornekler()` now generates nine document types instead of eight
+  (`saglik_raporu` added), 180 documents at the default sample size.
+
+### Fixed
+
+- `saglik_raporu` was defined but never included in `ornekler()`, so the
+  GENETIK special category was never exercised by measurement — the
+  measurement table looked complete while an entire row was silently
+  absent.
+
 ## [0.2.0] - 2026-09-11
 
 ### Added

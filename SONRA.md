@@ -2,20 +2,37 @@
 
 Aklıma gelen ama şimdi yapmayacağım şeyler.
 
-## Aşama 2 — model katmanı (tamamlandı)
-İsim, adres, kurum tespiti Ollama üzerinden bağlandı ve 140 sentetik
-belge üzerinde ölçüldü: AD 220/220, ADRES 40/40, KURUM 60/60 -- üçü de
-%100. Yerel model kullanılıyor, veri makineden çıkmıyor.
+## Aşama 2 — model katmanı (tamamlandı, sınır kısmen kapatıldı)
+İsim, adres, kurum tespiti Ollama üzerinden bağlandı. İlk ölçümde (140
+sentetik belge, adlar hep "Davacı Ahmet Yılmaz" gibi önceden etiketlenmiş
+sabit kalıplarda, sabit bir isim listesinden): AD 220/220, ADRES 40/40,
+KURUM 60/60 -- üçü de %100. Bu %100 bir üst sınırdı: cümle içinde
+etiketsiz geçen isimleri, günlük kelime olarak da kullanılan
+isim-kelimelerini (Deniz, Umut, Şafak, Barış, Güneş gibi) günlük kelime
+bağlamında, ya da yanlış yazılmış isimleri hiç sınamıyordu.
 
-Ölçümün sınırı, düz konuşmak gerekirse: üretici isimleri "Davacı Ahmet
-Yılmaz" gibi önceden etiketlenmiş sabit kalıplara, sabit bir isim
-listesinden yerleştiriyor. %100 bir üst sınır -- cümle içinde etiketsiz
-geçen isimleri, günlük kelime olarak da kullanılan isim-kelimeleri
-(Deniz, Umut, Şafak, Barış, Güneş gibi) günlük kelime bağlamında, ya da
-yanlış yazılmış isimleri kapsamıyor. Bu, aşağıdaki Ölçüm bölümünde özel
-nitelikli veri recall'ı için kayıtlı olan sınırla aynı sınıftan: ölçüm
-üreticiyle kelime dağarcığı ya da yapı paylaştığında, aracı değil
-üreticiyi ölçmüş oluyorsun.
+`zor_metin` üreticisi eklenince (isimler etiketsiz düzyazıda, çıplak
+soyadıyla, hâl ekiyle, günlük kelimeyle çakışan bir adla) AD recall'ı
+%96.7'ye düştü. Kaçan her isim aynı biçimdeydi: kişi bir kez tam adıyla
+anılıp sonra yalnızca soyadıyla anılıyordu ("Güneş Yıldız'ın beyanı
+alınmış... dinlenen Yıldız, beyanında..."), ve kaçanlar günlük kelimeyle
+çakışan soyadlarda yoğunlaşıyordu (Aydın, Kaya, Yıldız, Aslan, Arslan,
+Öztürk, Yıldırım). `soyadi_yay` bu yayılımı deterministik biçimde
+yapınca recall %99.5'e çıktı (180 belge, 9 tür × 20: AD 378/380, ADRES
+40/40, KURUM 60/60).
+
+Yerel model kullanılıyor, veri makineden çıkmıyor.
+
+Hâlâ kapsanmayanlar:
+- Yanlış yazılmış (misspelled) adlar.
+- OCR ile bozulmuş adlar.
+- Etiketsiz yazılmış adresler.
+- ADRES hâlâ yalnızca etiketli konumlarda üretiliyor -- bu yüzden %100'ü,
+  bu sürümden önce AD'nin taşıdığı zayıflığın aynısını taşıyor.
+
+Bu, aşağıdaki Ölçüm bölümünde özel nitelikli veri recall'ı için kayıtlı
+olan sınırla aynı sınıftan: ölçüm üreticiyle kelime dağarcığı ya da yapı
+paylaştığında, aracı değil üreticiyi ölçmüş oluyorsun.
 
 ## KVKK boşlukları
 - Özel nitelikli veri artık işaretleniyor (sözlük katmanı hazır, model

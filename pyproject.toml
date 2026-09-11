@@ -1,6 +1,6 @@
 [project]
 name = "kvkk-maskeleme"
-version = "0.2.0"
+version = "0.3.0"
 description = "Turkce metinlerde kisisel veri tespiti ve maskeleme (KVKK)"
 readme = "README.md"
 license = "MIT"

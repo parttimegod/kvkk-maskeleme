@@ -450,35 +450,93 @@ and including them would unfairly lower the result.
 
 ### With the model layer
 
-Passing a provider adds AD, ADRES and KURUM to the measured scope. Same
-140 documents, `gemma-4-abliterated:12b-qat`, thinking disabled:
+Passing a provider adds AD, ADRES and KURUM to the measured scope. Final
+run, 180 documents (9 types × 20), `gemma-4-abliterated:12b-qat`,
+thinking disabled, context window 8192:
 
 ```
-AD                           220      220  100.0%
-ADRES                         40       40  100.0%
-KURUM                         60       60  100.0%
+AD                             380      378   99.5%
+ADRES                           40       40  100.0%
+KURUM                           60       60  100.0%
+TC                              100     100  100.0%
 
-belge: 140
-temiz metin: 17, yanlış pozitif: 0 (0.0% belgede)
+CEZA_MAHKUMIYETI                 20       20  100.0%
+DERNEK_VAKIF_SENDIKA             20       20  100.0%
+GENETIK                          20       20  100.0%
+SAGLIK                           40       40  100.0%
+
+belge: 180
+temiz metin: 23, yanlış pozitif: 0 (0.0% belgede)
 model uydurması: 5
-sure: 155.6s (1.1s/belge)
+sure: 210.7s (1.2s/belge)
 ```
+
+TC and every other pattern-based identifier type also held at 100%,
+unchanged from the pattern layer — only the rows above depend on the
+model, or on GENETIK's document type being wired into the sample for
+the first time (see Fixed, below).
 
 `model uydurması` counts expressions the model returned that do not
-occur in the document. Five out of 320 model-found items were invented.
+occur in the document. Five out of 478 model-found items were invented.
 They are discarded rather than masked, because an expression that is not
 in the text cannot be a position in it — but the count is reported, so
 the fabrication rate of a given model is visible instead of hidden.
 
-**Read the 100% narrowly.** The generator places names in predictable
-labelled slots — *"Davacı Ahmet Yılmaz"* — and draws them from a fixed
-list. That is a fair test of "can the model pick a name out of Turkish
-legal prose", and no test at all of a name appearing mid-sentence
-without a label, a name that is also an everyday word used as an
-everyday word, or a misspelled name. It is an upper bound. This is the
-same limitation the special-category measurement has, recorded in
+**This measurement is not bit-reproducible.** At temperature 0, repeated
+runs over the same documents differ by about 2 names out of 380
+(roughly 0.5%) from one run to the next. Recall is therefore quoted to
+one decimal place at most — a second decimal would be false precision.
+
+**The 100% in 0.2.0 was an upper bound, and here is what closing it
+took.** The generator originally placed every name in a predictable
+labelled slot — *"Davacı Ahmet Yılmaz"* — drawn from a fixed list. That
+is a fair test of "can the model pick a name out of a labelled slot",
+and no test at all of a name appearing mid-sentence without a label, a
+name that is also an everyday word, or a misspelled name. Making the
+generator harder (`zor_metin`: names in unlabelled prose, case-inflected
+names, bare surnames, names that double as everyday words) dropped AD
+recall to 96.7%. Every miss had the same shape: a person named once in
+full and then referred to later by surname alone — *"Güneş Yıldız'ın
+beyanı alınmış... dinlenen Yıldız, beyanında..."* — concentrated on
+surnames that are also ordinary Turkish words (Aydın, Kaya, Yıldız,
+Aslan, Arslan, Öztürk, Yıldırım). Surname propagation (`soyadi_yay`, see
+below) closed that specific gap deterministically, bringing recall to
+99.5%.
+
+That is still not full coverage. Not covered: misspelled names,
+OCR-damaged names, and addresses written without a label — ADRES is
+still only ever generated in a labelled position, so its 100% carries
+the same weakness AD's did before this release. This is also the same
+class of limitation the special-category measurement has, recorded in
 [SONRA.md](SONRA.md): where a measurement shares vocabulary or structure
 with the generator, it measures the generator as much as the tool.
+
+### Surname propagation (`soyadi_yay`)
+
+A Turkish court document typically names a person once in full and then
+refers back to them by surname alone: *"Güneş Yıldız'ın beyanı
+alınmış... aynı celsede dinlenen Yıldız, beyanında..."*. The model
+reliably finds the first mention and just as reliably misses the bare
+surname later — in the 180-document measurement, every single AD miss
+had exactly this shape.
+
+This is handled deterministically instead of by asking the model to try
+harder: once a full name (`Ad Soyad`) has been found somewhere in the
+document, every other bare occurrence of that surname in the same
+document is masked too, carrying `kaynak="soyad"` so it stays
+distinguishable from a direct model finding (`kaynak="model"`). A bare
+`Yıldız` could be a surname or could be weather; asking the model to
+guess would reintroduce exactly the kind of unverified guess the
+identifier layer avoids by using check digits. Once the full name has
+already been confirmed once in the same document, propagating it to its
+bare occurrences is a deterministic fact about that document, not a
+guess.
+
+The one guard needed: `Aydın` is both a common surname and a province
+name, and adliye metni is full of place references — *"Aydın ili"*,
+*"Aydın ilinde bulunan taşınmaz"*. `soyadi_yay` skips a candidate
+immediately followed by `ili`, `ilinde`, `iline`, `ilinden`, `ilçesi` or
+`ilçesinde`, so "Aydın ili" is not masked as if Aydın were a person.
 
 ## Test data
 
