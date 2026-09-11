@@ -296,6 +296,14 @@ TEMIZ_CUMLELER = (
     "Dinlenme salonunda bekleyen taraflara duyuru yapıldı.",
     "Talebin reddine, kararın taraflara bildirilmesine karar verildi.",
     "Süresi içinde istinaf yoluna başvurulabileceği hatırlatıldı.",
+    # zor_metin ile aynı günlük-kelime-adları taşıyan tuzaklar: burada
+    # sıradan kelime olarak geçiyorlar, ad olarak değil.
+    "Olay deniz kenarında meydana gelmiştir.",
+    "Davacının umut ettiği sonuç doğmamıştır.",
+    "Taraflar barış içinde ayrılmıştır.",
+    "Keşif şafak vakti yapılmıştır.",
+    "Güneş açtıktan sonra keşfe devam edilmiştir.",
+    "Dilekçe sevgi ve saygı ifadeleriyle sona ermektedir.",
 )
 
 
@@ -307,11 +315,13 @@ def temiz_belgeler() -> list[Belge]:
 def ornekler(adet: int = 20) -> list[Belge]:
     """Ölçüm için belge kümesi.
 
-    Yedi tür. Hepsi bir arada her tanımlayıcı türünü en az bir kez
+    Sekiz tür. Hepsi bir arada her tanımlayıcı türünü en az bir kez
     içeriyor; bir tür hiçbir belgede geçmiyorsa ölçüm tablosu tam
     görünüp aslında eksik olur.
 
     Duruşma tutanağı bilerek temiz ve yanlış pozitif tuzakları taşıyor.
+    zor_metin ise adları etiketsiz, düzyazı içinde taşıyor -- AD/ADRES
+    recall'ının üreteci değil aracı ölçmesi için.
     """
     belgeler = []
     for i in range(adet):
@@ -322,6 +332,7 @@ def ornekler(adet: int = 20) -> list[Belge]:
         belgeler.append(tebligat(i))
         belgeler.append(ihtarname(i))
         belgeler.append(fatura(i))
+        belgeler.append(zor_metin(i))
     return belgeler
 
 
@@ -368,6 +379,90 @@ def saglik_raporu(tohum: int = 0) -> Belge:
         (" tespit edilmiştir. Ayrıca ", None),
         ("genetik yatkınlığa dair DNA incelemesi", "GENETIK"),
         (" yapılmıştır.\n", None),
+    ])
+
+
+def _son_unlu(kelime: str) -> str:
+    """Kelimenin sonundan geriye doğru ilk ünlüsü (ünlü uyumu için)."""
+    for c in reversed(kelime):
+        if c in "aeıioöuü":
+            return c
+        if c in "AEIİOÖUÜ":
+            return "ı" if c == "I" else ("i" if c == "İ" else c.lower())
+    return "e"
+
+
+def _iyelik_eki(kelime: str) -> str:
+    """Tamlayan eki ("-in" hâli): kalın/ince, düz/yuvarlak uyumuna göre.
+
+    "Demir" -> "'in", "Kaya" -> "'nın" (ünlüyle bitince araya "n" girer).
+    """
+    ek = {
+        "a": "ın", "ı": "ın", "e": "in", "i": "in",
+        "o": "un", "u": "un", "ö": "ün", "ü": "ün",
+    }[_son_unlu(kelime)]
+    if kelime[-1] in "aeıioöuüAEIİOÖUÜ":
+        ek = "n" + ek
+    return "'" + ek
+
+
+def _yonelme_eki(kelime: str) -> str:
+    """Yönelme eki ("-e" hâli): kalın/ince uyumuna göre.
+
+    Ünlüyle bitiyorsa araya "y" girer: "Kaya" -> "'ya", "Demir" -> "'e".
+    """
+    ek = "a" if _son_unlu(kelime) in "aıou" else "e"
+    if kelime[-1] in "aeıioöuüAEIİOÖUÜ":
+        ek = "y" + ek
+    return "'" + ek
+
+
+def zor_metin(tohum: int = 0) -> Belge:
+    """Etiketsiz, adliye diline yakın düzyazı: adlar rol etiketi olmadan geçiyor.
+
+    Bugüne dek ölçülen AD/ADRES recall'ı, adın hep "DAVACI :" gibi
+    öngörülebilir bir etiketin hemen ardından geldiği belgelere
+    dayanıyordu -- bu araç değil üreteci ölçmek demekti. Burada ad; tek
+    başına soyadıyla, kesme işaretli hâl ekiyle, günlük kelimeyle
+    çakışan bir adla, rol sözcüğünden bağımsız ya da aynı cümlede iki
+    adla geçiyor.
+
+    Etiket sınırı: "Ahmet Demir'in" gibi durumlarda etiketlenen alan
+    kesme işaretinden ÖNCEKİ ad+soyaddır ("Ahmet Demir"); hâl eki
+    etikete dahil değildir, çünkü maskeleme aracının değiştirmesi
+    gereken kısım budur -- ek cümlenin kendisine ait kalır.
+    """
+    r = random.Random(tohum + 8000)
+    ad1 = rastgele_ad(r)
+    ad1_soyad = ad1.split(" ", 1)[1]
+    ad2 = rastgele_ad(r)
+    ad2_soyad = ad2.split(" ", 1)[1]
+    ad3 = rastgele_ad(r)
+
+    return _yerlestir([
+        (f"ANTALYA {r.randint(1, 12)}. ASLİYE HUKUK MAHKEMESİ\n\n", None),
+        ("GEREKÇELİ KARAR\n\n", None),
+        ("Dosya kapsamında yapılan incelemede, ", None),
+        (ad1, "AD"),  # şekil 2: tam ad + kesme + tamlayan eki
+        (_iyelik_eki(ad1_soyad), None),
+        (" beyanı alınmış, olayın gelişimine dair ayrıntılı bilgi "
+         "verilmiştir. Aynı celsede dinlenen ", None),
+        (ad1_soyad, "AD"),  # şekil 1: soyadı tek başına, rol etiketi yok
+        (", beyanında olayı farklı anlatmıştır. ", None),
+        (ad2, "AD"),  # şekil 3: yönelme (dative) hâli
+        (_yonelme_eki(ad2_soyad), None),
+        (" usulüne uygun tebligat yapılmıştır. Tanıklardan ", None),
+        (ad3, "AD"),  # şekil 5: rol sözcüğünden ayrı, yapılandırılmış etiket yok
+        (" olayı doğrulamıştır. ", None),
+        ("Deniz Çelik", "AD"),  # şekil 4: günlük kelime ad olarak kullanılmış
+        (" duruşmaya mazeretsiz katılmamış, beyanı sonradan alınmıştır. ", None),
+        ("Barış Güneş", "AD"),  # şekil 6: aynı cümlede iki ad (1/2)
+        (" ile ", None),
+        ("Umut Şafak", "AD"),  # şekil 6: aynı cümlede iki ad (2/2)
+        (" arasında imzalanan protokolün geçerliliği bu davanın konusunu "
+         "oluşturmaktadır. Taraf vekillerinin beyanları ve dosyadaki "
+         "belgeler birlikte değerlendirilerek aşağıdaki şekilde hüküm "
+         "kurulmuştur.\n", None),
     ])
 
 
