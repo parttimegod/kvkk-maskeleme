@@ -124,13 +124,59 @@ def cevabi_coz(metin: str, cevap: str) -> ModelSonucu:
             continue
 
         for bas, son in konumlar:
-            sonuc.bulgular.append(Bulgu(tur, bas, son, deger))
+            sonuc.bulgular.append(Bulgu(tur, bas, son, deger, kaynak="model"))
 
     return sonuc
 
 
+# "Aydın ili" bir kişi değil bir yer. Kişinin soyadı da Aydın olabildiği
+# için soyad yayarken bu sözcüklerden birinin izlediği geçişi atlıyoruz.
+# "ile" bilerek listede yok: "Barış Güneş ile Umut Şafak" geçerli bir
+# kullanım ve orada Güneş gerçekten soyad.
+_YER_EKLERI = ("ili", "ilinde", "iline", "ilinden", "ilçesi", "ilçesinde")
+
+
+def soyadi_yay(metin: str, bulgular: list[Bulgu]) -> list[Bulgu]:
+    """Tam adı bulunan kişinin yalnız geçen soyadını da işaretler.
+
+    Adliye metninde kişi bir kez tam adıyla anılıp sonrasında yalnızca
+    soyadıyla geçiyor: "Güneş Yıldız'ın beyanı alınmış... aynı celsede
+    dinlenen Yıldız, beyanında...". Model ikincisini kaçırıyor -- 160
+    belgelik ölçümde kaçan adların **tamamı** bu biçimdeydi, ve kaçanlar
+    günlük kelimeyle çakışan soyadlarda yoğunlaşıyordu (Aydın, Kaya,
+    Yıldız, Aslan).
+
+    Modele "bunu da bul" demek yerine burada arıyoruz: tam adı zaten
+    bulduysak soyadın o belgedeki diğer geçişleri aynı kişidir. Kaçan
+    isim sızıntı demek olduğu için bu katmanda tahmine yer yok.
+    """
+    mevcut = [(b.baslangic, b.bitis) for b in bulgular]
+    yeni: list[Bulgu] = []
+
+    soyadlar = {
+        b.deger.split()[-1]
+        for b in bulgular
+        if b.tur == "AD" and len(b.deger.split()) > 1
+    }
+    for soyad in soyadlar:
+        if len(soyad) < 3:
+            continue
+        for m in re.finditer(rf"\b{re.escape(soyad)}\b", metin):
+            bas, son = m.start(), m.end()
+            if any(a < son and bas < z for a, z in mevcut):
+                continue
+            devam = metin[son:son + 12].lstrip("'’").lstrip()
+            if devam.split(" ")[0].rstrip(",.;:") in _YER_EKLERI:
+                continue
+            yeni.append(Bulgu("AD", bas, son, soyad, kaynak="soyad"))
+            mevcut.append((bas, son))
+    return yeni
+
+
 def bul(metin: str, saglayici: Saglayici) -> ModelSonucu:
-    return cevabi_coz(metin, saglayici.sor(istem_hazirla(metin)))
+    sonuc = cevabi_coz(metin, saglayici.sor(istem_hazirla(metin)))
+    sonuc.bulgular.extend(soyadi_yay(metin, sonuc.bulgular))
+    return sonuc
 
 
 @dataclass

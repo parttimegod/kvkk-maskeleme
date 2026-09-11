@@ -315,7 +315,7 @@ def temiz_belgeler() -> list[Belge]:
 def ornekler(adet: int = 20) -> list[Belge]:
     """Ölçüm için belge kümesi.
 
-    Sekiz tür. Hepsi bir arada her tanımlayıcı türünü en az bir kez
+    Dokuz tür. Hepsi bir arada her tanımlayıcı türünü en az bir kez
     içeriyor; bir tür hiçbir belgede geçmiyorsa ölçüm tablosu tam
     görünüp aslında eksik olur.
 
@@ -332,6 +332,7 @@ def ornekler(adet: int = 20) -> list[Belge]:
         belgeler.append(tebligat(i))
         belgeler.append(ihtarname(i))
         belgeler.append(fatura(i))
+        belgeler.append(saglik_raporu(i))
         belgeler.append(zor_metin(i))
     return belgeler
 

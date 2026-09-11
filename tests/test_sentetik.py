@@ -51,3 +51,25 @@ def test_zor_metin_etiket_konumlari_dogru():
     assert belge.etiketler
     for e in belge.etiketler:
         assert belge.metin[e.baslangic : e.bitis] == e.deger
+
+
+def test_butun_ureticiler_ornekleme_giriyor():
+    """Üretici yazılıp ornekler()'e bağlanmazsa ölçüm sessizce eksik kalır.
+
+    saglik_raporu bir süre tam da bunu yaptı: tanımlıydı ama ornekler()
+    içinde yoktu, o yüzden GENETIK satırı ölçüm tablosunda hiç çıkmadı.
+    Tablo tam görünüyordu. Yeni bir üretici bağlanmazsa burası patlasın.
+    """
+    import inspect
+
+    from kvkk_maskeleme import sentetik
+
+    ureticiler = [
+        f
+        for ad, f in inspect.getmembers(sentetik, inspect.isfunction)
+        if not ad.startswith("_")
+        and list(inspect.signature(f).parameters) == ["tohum"]
+    ]
+
+    assert len(ureticiler) >= 9
+    assert len(sentetik.ornekler(1)) == len(ureticiler)
