@@ -71,26 +71,31 @@ Points to note:
 
 ## Status
 
-The pattern layer works. The model layer's **infrastructure is ready,
-but no model is wired in** — the interface, response parsing, merging
-and measurement are written and tested; it activates once an
-`OllamaSaglayici` is supplied.
+Both layers work. The pattern layer finds identifiers that carry a check
+digit or a context label. The model layer finds names, addresses and
+institutions, which no pattern can find.
 
-| Type | Status | Method |
-|---|---|---|
-| TC identity number | ✓ | pattern + check digit |
-| Tax identification number | ✓ | pattern + check digit |
-| IBAN | ✓ | pattern + mod-97 |
-| Card number | ✓ | pattern + Luhn |
-| Phone | ✓ | pattern |
-| Number plate | ✓ | pattern |
-| Email | ✓ | pattern |
-| Passport number | ✓ | context anchor |
-| Date of birth | ✓ | context anchor |
-| SGK registration number | ✓ | context anchor |
-| **Name** | infrastructure ready | model layer |
-| **Address** | infrastructure ready | model layer |
-| **Institution** | infrastructure ready | model layer |
+| Type | Status | Method | Recall |
+|---|---|---|---|
+| TC identity number | ✓ | pattern + check digit | 100% |
+| Tax identification number | ✓ | pattern + check digit | 100% |
+| IBAN | ✓ | pattern + mod-97 | 100% |
+| Card number | ✓ | pattern + Luhn | 100% |
+| Phone | ✓ | pattern | 100% |
+| Number plate | ✓ | pattern | 100% |
+| Email | ✓ | pattern | 100% |
+| Passport number | ✓ | context anchor | 100% |
+| Date of birth | ✓ | context anchor | 100% |
+| SGK registration number | ✓ | context anchor | 100% |
+| **Name** | ✓ | model + surname propagation | 99.5% |
+| **Address** | ✓ | model | 100% |
+| **Institution** | ✓ | model | 100% |
+
+Measured over 180 generated documents, with 0 false positives on 23
+clean control sentences. The model layer is optional: without a
+provider, only the pattern layer runs and the last three rows are not
+attempted. Read [Measurement](#measurement) before trusting these
+numbers — it says what they do and do not cover.
 
 ## Scope under KVKK
 
@@ -423,7 +428,7 @@ KART                          20       20  100.0%
 PASAPORT                      20       20  100.0%
 PLAKA                         20       20  100.0%
 SGK_SICIL                     20       20  100.0%
-TC                            80       80  100.0%
+TC                           100      100  100.0%
 TELEFON                       40       40  100.0%
 VKN                           60       60  100.0%
 
@@ -432,10 +437,11 @@ tür                     beklenen  bulunan   recall
 --------------------------------------------------
 CEZA_MAHKUMIYETI              20       20  100.0%
 DERNEK_VAKIF_SENDIKA          20       20  100.0%
-SAGLIK                        20       20  100.0%
+GENETIK                       20       20  100.0%
+SAGLIK                        40       40  100.0%
 
-belge: 140
-temiz metin: 17, yanlış pozitif: 0 (0.0% belgede)
+belge: 180
+temiz metin: 23, yanlış pozitif: 0 (0.0% belgede)
 ```
 
 The last line measures the cost of the generous dictionary. The clean
