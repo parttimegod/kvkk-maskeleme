@@ -87,11 +87,11 @@ institutions, which no pattern can find.
 | Passport number | ✓ | context anchor | 100% |
 | Date of birth | ✓ | context anchor | 100% |
 | SGK registration number | ✓ | context anchor | 100% |
-| **Name** | ✓ | model + surname propagation | 99.5% |
+| **Name** | ✓ | model + surname propagation + diacritic folding | 99.6% |
 | **Address** | ✓ | model + address extension | 100% |
 | **Institution** | ✓ | model | 100% |
 
-Measured over 200 generated documents, with 0 false positives on 27
+Measured over 220 generated documents, with 0 false positives on 30
 clean control sentences. Address recall is now measured against
 addresses written in unlabelled prose, not only in a predictable
 labelled slot — see [Measurement](#measurement) for what that took. The
@@ -453,8 +453,8 @@ DERNEK_VAKIF_SENDIKA          20       20  100.0%
 GENETIK                       20       20  100.0%
 SAGLIK                        40       40  100.0%
 
-belge: 200
-temiz metin: 27, yanlış pozitif: 0 (0.0% belgede)
+belge: 220
+temiz metin: 30, yanlış pozitif: 0 (0.0% belgede)
 ```
 
 The last line measures the cost of the generous dictionary. The clean
@@ -470,12 +470,12 @@ and including them would unfairly lower the result.
 ### With the model layer
 
 Passing a provider adds AD, ADRES and KURUM to the measured scope. Final
-run, 200 documents (10 types × 20), `gemma-4-abliterated:12b-qat`,
+run, 220 documents (11 types × 20), `gemma-4-abliterated:12b-qat`,
 thinking disabled, context window 8192:
 
 ```
-AD                             380      378   99.5%
-ADRES                          140      140  100.0%
+AD                             520      518   99.6%
+ADRES                          160      160  100.0%
 KURUM                           60       60  100.0%
 TC                              100     100  100.0%
 
@@ -484,10 +484,10 @@ DERNEK_VAKIF_SENDIKA             20       20  100.0%
 GENETIK                          20       20  100.0%
 SAGLIK                           40       40  100.0%
 
-belge: 200
-temiz metin: 27, yanlış pozitif: 0 (0.0% belgede)
+belge: 220
+temiz metin: 30, yanlış pozitif: 0 (0.0% belgede)
 model uydurması: 5
-sure: 285.3s (1.4s/belge)
+sure: 327.2s (1.5s/belge)
 ```
 
 TC and every other pattern-based identifier type also held at 100%,
@@ -497,7 +497,7 @@ depend on the model, or, for ADRES, on `zor_adres` and
 [Address extension](#address-extension-adresi_genislet), below).
 
 `model uydurması` counts expressions the model returned that do not
-occur in the document. Five out of 578 model-found items were invented.
+occur in the document. Five model-found items were invented this run.
 They are discarded rather than masked, because an expression that is not
 in the text cannot be a position in it — but the count is reported, so
 the fabrication rate of a given model is visible instead of hidden.
@@ -541,12 +541,18 @@ Closing it took a second piece, `adresi_genislet` — see [Address
 extension](#address-extension-adresi_genislet), below, for what the
 drop actually looked like and why it was worse than a plain miss.
 
-That is still not full coverage. Not covered: misspelled names,
-misspelled addresses, OCR-damaged names, and OCR-damaged addresses.
-This is also the same class of limitation the special-category
-measurement has, recorded in [SONRA.md](SONRA.md): where a measurement
-shares vocabulary or structure with the generator, it measures the
-generator as much as the tool.
+OCR-damaged names and addresses are now covered too — see [OCR
+damage](#ocr-damage-bozuk_metin), below. What remains open: glyph-confusion
+damage inside a bare surname (a later reference reading "K1llc", say) —
+diacritic folding does not repair this, because there is no diacritic
+there to fold back, only a confused glyph — and entity resolution: the
+same person appearing as "Deniz Çelik" in one place and "Çelik" in
+another gets two different placeholders. That is a readability cost,
+not a leak; both spans are still masked. This is also the same class of
+limitation the special-category measurement has, recorded in
+[SONRA.md](SONRA.md): where a measurement shares vocabulary or
+structure with the generator, it measures the generator as much as the
+tool.
 
 ### Surname propagation (`soyadi_yay`)
 
@@ -607,6 +613,36 @@ it — `N. Cadde`, `N. Sokak`, `No: N`, `Kat`/`Daire`/`Blok N` — and
 leaves the finding untouched when what follows is not such a chain, so
 *"Bahçelievler Mahallesi'nde ikamet etmektedir"* is not over-extended
 into the next sentence.
+
+### OCR damage (`bozuk_metin`)
+
+The first OCR measurement read AD 99.6%, and that number was worthless.
+The generator gave the model two free cues: the document's own prose
+explained the damage — *"tarama sırasında Türkçe karakterlerin düştüğü
+tespit edilmiştir"* ("the scan is found to have dropped Turkish
+characters") — and a real scan does not narrate its own damage; and
+only the names were damaged while the surrounding text stayed clean, so
+the damage itself became the signal that a name was there. A real scan
+damages everything uniformly.
+
+Removing both cues dropped AD to 91.9% — 40 misses out of 160 damaged
+labels. All 40 were exactly two values: "Sahin" and "Öztürk", 20 each.
+These are the mixed-damage anaphora cases: a full name appears clean
+and the later bare surname is damaged, or the reverse. `soyadi_yay`
+matched substrings exactly, so it could not connect "Şahin" to "Sahin".
+The model itself found every damaged name it was asked to find —
+"Ayse Yildirim", "Mustafa K1llc", "IBRAHIM SAHIN", and the damaged
+address. The failure was in the code around the model, not the model.
+
+`soyadi_yay` now searches a diacritic-folded copy of the text. Case is
+deliberately not folded: a person surnamed Aslan can appear in a
+document that also says "aslan gibi" ("like a lion"), and case-folding
+would mask the common noun. The fold is length-preserving so positions
+stay valid in the original text, and the recorded value is the string
+as it appears in the document, not the folded form.
+
+Final: AD back to 99.6% — the same number as the first measurement, now
+meaning something.
 
 ## Test data
 

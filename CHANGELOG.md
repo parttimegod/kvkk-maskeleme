@@ -4,6 +4,49 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.5.0] - 2026-09-13
+
+The first OCR measurement read AD 99.6%, and that number was worthless.
+The generator gave the model two free cues: the document's own prose
+explained the damage ("tarama sırasında Türkçe karakterlerin düştüğü
+tespit edilmiştir" — a real scan does not narrate its own damage), and
+only the names were damaged while the surrounding text stayed clean, so
+the damage itself became the signal that a name was there. Removing
+both cues dropped AD to 91.9% — 40 misses out of 160 damaged labels, all
+of them exactly two values ("Sahin" and "Öztürk", 20 each): the
+mixed-damage anaphora case, where a full name is found clean and the
+later bare surname is damaged, or the reverse. `soyadi_yay` matched
+substrings exactly, so it could not connect "Şahin" to "Sahin" — the
+model itself found every damaged name it was asked to find; the gap was
+in the code around the model, not the model. Folding the search to a
+diacritic-stripped copy of the text closed it: AD is back to 99.6%, now
+measured against a generator that damages the whole document uniformly
+instead of only the names.
+
+### Added
+
+- `bozuk_metin`, a synthetic-document generator that applies OCR/scan
+  damage across the whole document instead of only to names and
+  addresses, and drops the prose that narrated its own damage — both of
+  which had been giving the model a free cue.
+- `ocr_hasari_uygula`, the damage helper behind it: diacritic drop,
+  optional classic glyph confusion (`ı` → `l`/`1`), optional `rn`/`m`
+  confusion.
+- Three OCR trap sentences in `TEMIZ_CUMLELER`.
+
+### Fixed
+
+- `soyadi_yay` could not connect a name to its OCR-damaged later
+  mention: a full name found clean ("Ayşe Yıldırım") and a later bare
+  surname damaged by OCR ("Yildirim") did not match under exact
+  substring search. It now searches a diacritic-folded copy of the
+  text; case is deliberately not folded, so a common noun that happens
+  to be a surname ("aslan gibi") is not caught by mistake.
+- The OCR generator flattered the measurement it was supposed to be
+  testing: it narrated its own damage in the document's prose and left
+  everything but the names and address clean, and both gave the model a
+  free cue that a real scan would not.
+
 ## [0.4.0] - 2026-09-13
 
 The five ADRES misses in this release's first measurement were not

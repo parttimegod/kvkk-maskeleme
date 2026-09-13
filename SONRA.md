@@ -37,11 +37,37 @@ cadde/sokak/numara/kat zincirine kadar deterministik olarak uzatınca
 recall %100'e çıktı (200 belge, 10 tür × 20: AD 378/380, ADRES 140/140,
 KURUM 60/60).
 
+OCR/tarama hasarı da aynı örüntüyü taşıyordu. İlk ölçüm AD'yi %99.6
+okudu ama bu sayı boştu: üretici modele iki bedava ipucu veriyordu --
+belgenin kendi düzyazısı hasarı anlatıyordu ("tarama sırasında Türkçe
+karakterlerin düştüğü tespit edilmiştir" -- gerçek bir tarama kendi
+hasarını anlatmaz), ve yalnızca adlar bozuluyordu, çevre metin temiz
+kalıyordu, böylece hasarın kendisi "burada bir ad var" sinyaline
+dönüşüyordu. Gerçek bir tarama her şeyi aynı ölçüde bozar. İki ipucu da
+kaldırılınca AD %91.9'a düştü -- 160 hasarlı etiketten 40'ı kaçtı,
+kaçanların tamamı iki değerdi: "Sahin" ve "Öztürk", yirmişer. Bunlar
+karışık-hasar anafor durumlarıydı: tam ad temiz geçip sonraki çıplak
+soyadı hasarlı, ya da tersi. `soyadi_yay` tam alt dizi eşleşmesiyle
+çalıştığı için "Şahin"i "Sahin"e bağlayamıyordu. Modelin kendisi istenen
+her hasarlı adı buldu -- "Ayse Yildirim", "Mustafa K1llc", "IBRAHIM
+SAHIN", hasarlı adres -- açık modelin etrafındaki koddaydı, modelde
+değil. `soyadi_yay` artık metnin aksan-katlanmış bir kopyasında arıyor;
+büyük/küçük harf bilerek katlanmıyor (soyadı Aslan olan biri "aslan
+gibi" ifadesi geçen bir belgede de olabilir, katlama küçültseydi bu ad
+sayılırdı). AD yeniden %99.6'ya çıktı -- ilk ölçümle aynı sayı, ama
+şimdi bir şey ifade ediyor (220 belge, 11 tür × 20: AD 518/520, ADRES
+160/160, KURUM 60/60).
+
 Yerel model kullanılıyor, veri makineden çıkmıyor.
 
 Hâlâ kapsanmayanlar:
-- Yanlış yazılmış (misspelled) adlar ve adresler.
-- OCR ile bozulmuş adlar ve adresler.
+- Çıplak soyadın içindeki glif-karışıklığı hasarı (örn. sonraki bir
+  atıfta "K1llc" gibi) -- aksan katlaması bunu onarmıyor, çünkü
+  katlanacak bir aksan yok, karışan bir glif var.
+- Varlık çözümleme (entity resolution): aynı kişi belgede bir yerde
+  "Deniz Çelik", başka yerde yalnızca "Çelik" olarak geçtiğinde iki
+  farklı yer tutucu alıyor -- bu bir okunabilirlik bedeli, veri
+  sızıntısı değil.
 
 Bu, aşağıdaki Ölçüm bölümünde özel nitelikli veri recall'ı için kayıtlı
 olan sınırla aynı sınıftan: ölçüm üreticiyle kelime dağarcığı ya da yapı
