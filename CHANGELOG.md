@@ -4,6 +4,48 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0] - 2026-09-13
+
+The five ADRES misses in this release's first measurement were not
+misses. They were half-masked: given an address with no address-word
+nearby, the model returned only the neighbourhood — "Kızılay Mahallesi"
+out of "Kızılay Mahallesi 28. Cadde No: 20" — so the masked output read
+`Tebligat <ADRES_1> 28. Cadde No: 20 numarasına yapılmıştır.` with the
+street and door number still in the clear. This is worse than a miss,
+because the output looks masked; a span-overlap metric would have
+scored it as found. `olcum.py`'s exact `(type, value)` match is what
+caught it.
+
+### Added
+
+- `zor_adres`, a synthetic-document generator that places addresses in
+  unlabelled prose: the address-word after the address instead of
+  before it, a full province/district/neighbourhood/street chain, a
+  bare neighbourhood name, and an address with no address-word anywhere
+  nearby. Four new trap sentences in `TEMIZ_CUMLELER` covering place
+  references that are not personal addresses.
+- `adresi_genislet`, which extends an ADRES finding through a following
+  street/number/floor chain (`N. Cadde`, `N. Sokak`, `No: N`,
+  `Kat`/`Daire`/`Blok N`) so a half-masked address is masked in full; a
+  finding with no such chain after it is left untouched.
+- `ILCELER`, a province → district mapping used by the synthetic
+  generator so a generated address names a district that actually
+  belongs to its province.
+
+### Fixed
+
+- Half-masked addresses: the model would return only the leading part
+  of an address (typically the neighbourhood) when no address-word
+  appeared near it, leaving the street and door number unmasked in the
+  output. `adresi_genislet` closes this. ADRES recall against
+  unlabelled prose: 96.4% with `zor_adres` alone, 100% with
+  `adresi_genislet` added (200 documents, 10 types × 20: AD 378/380,
+  ADRES 140/140, KURUM 60/60).
+- Ungrammatical Turkish and a non-existent province/district pairing
+  ("İzmir ili Muratpaşa ilçesi") in the address generator, which made
+  the synthetic corpus unrealistic and therefore the measurement
+  against it untrustworthy.
+
 ## [0.3.0] - 2026-09-11
 
 AD (name) recall went 100% → 96.7% → 99.5% across this release. The

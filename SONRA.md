@@ -2,7 +2,7 @@
 
 Aklıma gelen ama şimdi yapmayacağım şeyler.
 
-## Aşama 2 — model katmanı (tamamlandı, sınır kısmen kapatıldı)
+## Aşama 2 — model katmanı (tamamlandı, ADRES'in etiketli-konum sınırı da kapandı)
 İsim, adres, kurum tespiti Ollama üzerinden bağlandı. İlk ölçümde (140
 sentetik belge, adlar hep "Davacı Ahmet Yılmaz" gibi önceden etiketlenmiş
 sabit kalıplarda, sabit bir isim listesinden): AD 220/220, ADRES 40/40,
@@ -21,14 +21,27 @@ alınmış... dinlenen Yıldız, beyanında..."), ve kaçanlar günlük kelimeyl
 yapınca recall %99.5'e çıktı (180 belge, 9 tür × 20: AD 378/380, ADRES
 40/40, KURUM 60/60).
 
+ADRES aynı sınırı taşıyordu: üreticide adres hep etiketli bir konumda
+duruyordu, %100 yalnızca "etiketten oku" testiydi. `zor_adres` eklenince
+(adres sözcüğü kendisinden sonra gelerek, tam idari zincir olarak,
+sadece mahalle adıyla ya da hiçbir adres sözcüğü olmadan) ADRES recall'ı
+%96.4'e düştü. Kaçan beşin hepsi aynı biçimdeydi ve gerçekte kaçmamıştı
+-- **yarım maskelenmişti**: model "Kızılay Mahallesi 28. Cadde No: 20"
+ifadesinden yalnızca "Kızılay Mahallesi"yi döndürüyordu, çıktı da
+"Tebligat <ADRES_1> 28. Cadde No: 20 numarasına yapılmıştır" oluyordu --
+sokak ve kapı numarası açıkta kalıyordu. Bunu yakalayan, `olcum.py`'nin
+konum örtüşmesi değil birebir `(tür, değer)` eşleşmesi araması: örtüşme
+sorulsaydı "Kızılay Mahallesi" etiketli adresle örtüştüğü için bulundu
+sayılırdı. `adresi_genislet`, bir ADRES bulgusunu ardından gelen
+cadde/sokak/numara/kat zincirine kadar deterministik olarak uzatınca
+recall %100'e çıktı (200 belge, 10 tür × 20: AD 378/380, ADRES 140/140,
+KURUM 60/60).
+
 Yerel model kullanılıyor, veri makineden çıkmıyor.
 
 Hâlâ kapsanmayanlar:
-- Yanlış yazılmış (misspelled) adlar.
-- OCR ile bozulmuş adlar.
-- Etiketsiz yazılmış adresler.
-- ADRES hâlâ yalnızca etiketli konumlarda üretiliyor -- bu yüzden %100'ü,
-  bu sürümden önce AD'nin taşıdığı zayıflığın aynısını taşıyor.
+- Yanlış yazılmış (misspelled) adlar ve adresler.
+- OCR ile bozulmuş adlar ve adresler.
 
 Bu, aşağıdaki Ölçüm bölümünde özel nitelikli veri recall'ı için kayıtlı
 olan sınırla aynı sınıftan: ölçüm üreticiyle kelime dağarcığı ya da yapı

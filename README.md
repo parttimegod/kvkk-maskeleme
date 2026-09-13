@@ -88,14 +88,17 @@ institutions, which no pattern can find.
 | Date of birth | ✓ | context anchor | 100% |
 | SGK registration number | ✓ | context anchor | 100% |
 | **Name** | ✓ | model + surname propagation | 99.5% |
-| **Address** | ✓ | model | 100% |
+| **Address** | ✓ | model + address extension | 100% |
 | **Institution** | ✓ | model | 100% |
 
-Measured over 180 generated documents, with 0 false positives on 23
-clean control sentences. The model layer is optional: without a
-provider, only the pattern layer runs and the last three rows are not
-attempted. Read [Measurement](#measurement) before trusting these
-numbers — it says what they do and do not cover.
+Measured over 200 generated documents, with 0 false positives on 27
+clean control sentences. Address recall is now measured against
+addresses written in unlabelled prose, not only in a predictable
+labelled slot — see [Measurement](#measurement) for what that took. The
+model layer is optional: without a provider, only the pattern layer
+runs and the last three rows are not attempted. Read
+[Measurement](#measurement) before trusting these numbers — it says
+what they do and do not cover.
 
 ## Scope under KVKK
 
@@ -412,6 +415,16 @@ calculated. There is also a set of court-text sentences containing no
 personal data; if the dictionary layer flags one of them, it counts as
 a false positive.
 
+Recall is scored by exact `(type, value)` match against the labelled
+span, not by whether a finding merely overlaps it. The difference is
+not academic: a model that returns only "Kızılay Mahallesi" out of a
+longer labelled address *does* overlap the label, so a span-overlap
+metric would count it as found, while the masked output still leaks the
+street and door number in the clear. Exact-match scoring counts that as
+a miss, which is what it actually is. See [Address
+extension](#address-extension-adresi_genislet) below for the case that
+made the difference concrete.
+
 ```python
 from kvkk_maskeleme.olcum import calistir
 print(calistir(20).tablo())
@@ -440,8 +453,8 @@ DERNEK_VAKIF_SENDIKA          20       20  100.0%
 GENETIK                       20       20  100.0%
 SAGLIK                        40       40  100.0%
 
-belge: 180
-temiz metin: 23, yanlış pozitif: 0 (0.0% belgede)
+belge: 200
+temiz metin: 27, yanlış pozitif: 0 (0.0% belgede)
 ```
 
 The last line measures the cost of the generous dictionary. The clean
@@ -457,12 +470,12 @@ and including them would unfairly lower the result.
 ### With the model layer
 
 Passing a provider adds AD, ADRES and KURUM to the measured scope. Final
-run, 180 documents (9 types × 20), `gemma-4-abliterated:12b-qat`,
+run, 200 documents (10 types × 20), `gemma-4-abliterated:12b-qat`,
 thinking disabled, context window 8192:
 
 ```
 AD                             380      378   99.5%
-ADRES                           40       40  100.0%
+ADRES                          140      140  100.0%
 KURUM                           60       60  100.0%
 TC                              100     100  100.0%
 
@@ -471,19 +484,20 @@ DERNEK_VAKIF_SENDIKA             20       20  100.0%
 GENETIK                          20       20  100.0%
 SAGLIK                           40       40  100.0%
 
-belge: 180
-temiz metin: 23, yanlış pozitif: 0 (0.0% belgede)
+belge: 200
+temiz metin: 27, yanlış pozitif: 0 (0.0% belgede)
 model uydurması: 5
-sure: 210.7s (1.2s/belge)
+sure: 285.3s (1.4s/belge)
 ```
 
 TC and every other pattern-based identifier type also held at 100%,
-unchanged from the pattern layer — only the rows above depend on the
-model, or on GENETIK's document type being wired into the sample for
-the first time (see Fixed, below).
+unchanged from the pattern layer — the rows above are the ones that
+depend on the model, or, for ADRES, on `zor_adres` and
+`adresi_genislet` being wired into the sample for the first time (see
+[Address extension](#address-extension-adresi_genislet), below).
 
 `model uydurması` counts expressions the model returned that do not
-occur in the document. Five out of 478 model-found items were invented.
+occur in the document. Five out of 578 model-found items were invented.
 They are discarded rather than masked, because an expression that is not
 in the text cannot be a position in it — but the count is reported, so
 the fabrication rate of a given model is visible instead of hidden.
@@ -509,13 +523,30 @@ Aslan, Arslan, Öztürk, Yıldırım). Surname propagation (`soyadi_yay`, see
 below) closed that specific gap deterministically, bringing recall to
 99.5%.
 
+ADRES carried the exact same weakness going into this release: every
+address in the generator sat in a predictable labelled slot, so its
+100% was the same kind of upper bound AD's had been. This release
+closes that gap the same way — `zor_adres` puts addresses in unlabelled
+prose (address-word after the address, a full administrative chain, a
+bare neighbourhood name, no address-word anywhere nearby) — and the
+progression looks the same shape as AD's did:
+
+| generator | ADRES recall |
+|---|---|
+| labelled slots only | 100% |
+| with `zor_adres` (unlabelled prose) | 96.4% |
+| + `adresi_genislet` | 100% |
+
+Closing it took a second piece, `adresi_genislet` — see [Address
+extension](#address-extension-adresi_genislet), below, for what the
+drop actually looked like and why it was worse than a plain miss.
+
 That is still not full coverage. Not covered: misspelled names,
-OCR-damaged names, and addresses written without a label — ADRES is
-still only ever generated in a labelled position, so its 100% carries
-the same weakness AD's did before this release. This is also the same
-class of limitation the special-category measurement has, recorded in
-[SONRA.md](SONRA.md): where a measurement shares vocabulary or structure
-with the generator, it measures the generator as much as the tool.
+misspelled addresses, OCR-damaged names, and OCR-damaged addresses.
+This is also the same class of limitation the special-category
+measurement has, recorded in [SONRA.md](SONRA.md): where a measurement
+shares vocabulary or structure with the generator, it measures the
+generator as much as the tool.
 
 ### Surname propagation (`soyadi_yay`)
 
@@ -543,6 +574,39 @@ name, and adliye metni is full of place references — *"Aydın ili"*,
 *"Aydın ilinde bulunan taşınmaz"*. `soyadi_yay` skips a candidate
 immediately followed by `ili`, `ilinde`, `iline`, `ilinden`, `ilçesi` or
 `ilçesinde`, so "Aydın ili" is not masked as if Aydın were a person.
+
+### Address extension (`adresi_genislet`)
+
+The five ADRES misses `zor_adres` turned up were not misses. They were
+**half-masked**. Given *"Tebligat Kızılay Mahallesi 28. Cadde No: 20
+numarasına yapılmıştır"* — an address with no address-word ("adresinde",
+"adres") anywhere near it — the model returned only the neighbourhood,
+`"Kızılay Mahallesi"`, out of the full address. Masking that finding as-is
+produces:
+
+```
+Tebligat <ADRES_1> 28. Cadde No: 20 numarasına yapılmıştır.
+```
+
+The street and the door number are still sitting there in the clear.
+All five misses had the same shape: no address-word nearby to tell the
+model where the address ended, so it stopped at the first thing that
+looked complete on its own.
+
+This is worse than a plain miss, because the output *looks* masked.
+It is why `olcum.py` scores recall by exact `(type, value)` match
+instead of asking "does a finding overlap the labelled span?" — the
+overlap question would have scored `"Kızılay Mahallesi"` as found,
+because it does overlap the labelled address. The exact-match metric is
+stricter, and the strictness is what caught this: a lenient span-overlap
+metric would have hidden a live leak behind a passing number.
+
+`adresi_genislet` runs after the model layer and extends an ADRES
+finding through whatever street/number/floor chain immediately follows
+it — `N. Cadde`, `N. Sokak`, `No: N`, `Kat`/`Daire`/`Blok N` — and
+leaves the finding untouched when what follows is not such a chain, so
+*"Bahçelievler Mahallesi'nde ikamet etmektedir"* is not over-extended
+into the next sentence.
 
 ## Test data
 
