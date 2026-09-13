@@ -135,6 +135,24 @@ def cevabi_coz(metin: str, cevap: str) -> ModelSonucu:
 # kullanım ve orada Güneş gerçekten soyad.
 _YER_EKLERI = ("ili", "ilinde", "iline", "ilinden", "ilçesi", "ilçesinde")
 
+# Aksan katlama. Büyük/küçük harf KORUNUYOR: "İ" -> "I", "ı" -> "i".
+# Küçültseydik soyadı Aslan olan birinin belgesinde "aslan gibi" ifadesi
+# de ad sayılırdı; katlama yalnızca taramanın düşürdüğü aksanı geri
+# getirmek için, harf büyüklüğünü eşitlemek için değil.
+_AKSAN = str.maketrans({
+    "ş": "s", "Ş": "S", "ğ": "g", "Ğ": "G", "ı": "i", "İ": "I",
+    "ö": "o", "Ö": "O", "ü": "u", "Ü": "U", "ç": "c", "Ç": "C",
+})
+
+
+def _aksansiz(s: str) -> str:
+    """Aksanları düşürür, uzunluğu değiştirmez.
+
+    Uzunluğun korunması önemli: katlanmış metinde bulduğumuz konumu
+    olduğu gibi asıl metinde kullanıyoruz.
+    """
+    return s.translate(_AKSAN)
+
 
 def soyadi_yay(metin: str, bulgular: list[Bulgu]) -> list[Bulgu]:
     """Tam adı bulunan kişinin yalnız geçen soyadını da işaretler.
@@ -158,17 +176,26 @@ def soyadi_yay(metin: str, bulgular: list[Bulgu]) -> list[Bulgu]:
         for b in bulgular
         if b.tur == "AD" and len(b.deger.split()) > 1
     }
+    # Arama aksansız yapılıyor: taranmış belgede aynı kişi bir yerde
+    # "Şahin", başka yerde "Sahin" olarak geçebiliyor ve tam alt dizi
+    # eşleşmesi bu bağı kuramıyordu. Ölçüldü: 160 hasarlı etiketten
+    # kaçan 40'ının tamamı bu ikisiydi ("Sahin", "Öztürk"). Katlama
+    # uzunluğu değiştirmediği için konumlar asıl metinde geçerli.
+    metin_aksansiz = _aksansiz(metin)
     for soyad in soyadlar:
         if len(soyad) < 3:
             continue
-        for m in re.finditer(rf"\b{re.escape(soyad)}\b", metin):
+        desen = rf"\b{re.escape(_aksansiz(soyad))}\b"
+        for m in re.finditer(desen, metin_aksansiz):
             bas, son = m.start(), m.end()
             if any(a < son and bas < z for a, z in mevcut):
                 continue
             devam = metin[son:son + 12].lstrip("'’").lstrip()
             if devam.split(" ")[0].rstrip(",.;:") in _YER_EKLERI:
                 continue
-            yeni.append(Bulgu("AD", bas, son, soyad, kaynak="soyad"))
+            # Değer metinde geçtiği hâliyle kaydediliyor, katlanmış
+            # hâliyle değil: maskelenecek olan asıl metindeki dizi.
+            yeni.append(Bulgu("AD", bas, son, metin[bas:son], kaynak="soyad"))
             mevcut.append((bas, son))
     return yeni
 

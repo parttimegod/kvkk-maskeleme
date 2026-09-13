@@ -704,35 +704,34 @@ def bozuk_metin(tohum: int = 0) -> Belge:
     ad5 = "İBRAHİM ŞAHİN"
     ad5_hasarli = ocr_hasari_uygula(ad5, r)
 
+    # Belgenin TAMAMI hasarlı: çevre metin de aksansız. İlk hâlinde
+    # yalnızca adlar bozuktu ve metin "taramada Türkçe karakterler düştü"
+    # diye açıkça yazıyordu -- ikisi de modele bedava ipucu veriyordu.
+    # Temiz bir cümlenin ortasındaki tek bozuk kelime zaten "burada ad
+    # var" demektir; gerçek taramada böyle bir kontrast olmaz, her şey
+    # aynı ölçüde bozulur. Açıklayıcı cümleler de kaldırıldı: taranmış
+    # belge kendi hasarını anlatmaz.
     return _yerlestir([
-        (f"ANTALYA {r.randint(1, 12)}. ASLİYE HUKUK MAHKEMESİ\n\n", None),
-        ("GEREKÇELİ KARAR\n\n", None),
-        ("Dosyaya sunulan taranmış nüshada, davacı vekili tarafından ibraz "
-         "edilen belgede müvekkilinin adının ", None),
+        (f"ANTALYA {r.randint(1, 12)}. ASLIYE HUKUK MAHKEMESI\n\n", None),
+        ("GEREKCELI KARAR\n\n", None),
+        ("DAVACI  : ", None),
         (ad1_hasarli, "AD"),
-        (" şeklinde okunduğu, tarama sırasında Türkçe karakterlerin "
-         "düştüğü tespit edilmiştir. Aynı nüshada davalı tarafın adının ",
-         None),
-        (ad2_hasarli, "AD"),
-        (" şeklinde çıktığı, harf tanıma hatası nedeniyle bazı harflerin "
-         "birbirine karıştığı görülmüştür. Müvekkilin ikamet adresi "
-         "taranan nüshada ", None),
+        ("\nADRES   : ", None),
         (adres1_hasarli, "ADRES"),
-        (" şeklinde geçmektedir. Duruşmada dinlenen ", None),
+        ("\nDAVALI  : ", None),
+        (ad2_hasarli, "AD"),
+        ("\n\nDurusmada dinlenen ", None),
         (ad3, "AD"),
-        (", beyanında olayı ayrıntılı biçimde anlatmıştır. Aynı celsede "
-         "taranan tutanak nüshasında yalnızca soyadıyla geçen ", None),
+        (" beyanda bulunmus, olayin gelisimini ayrintili bicimde "
+         "anlatmistir. ", None),
         (ad3_soyad_hasarli, "AD"),
-        (" ifadesinin de aynı kişiye ait olduğu değerlendirilmiştir. "
-         "Taranmış ihbarname nüshasında müvekkilin adı ", None),
+        (", ifadesinde onceki beyanini tekrar etmistir. ", None),
         (ad4_hasarli, "AD"),
-        (" şeklinde okunmuş olsa da, dosyaya sonradan sunulan temiz "
-         "nüshada aynı kişi yalnızca soyadıyla ", None),
+        (" adina duzenlenen belge dosyaya sunulmus, sozlesme ", None),
         (ad4_soyad_temiz, "AD"),
-        (" olarak anılmıştır. Tanık olarak dinlenen ", None),
+        (" tarafindan imzalanmistir. Tanik ", None),
         (ad5_hasarli, "AD"),
-        (" başlıklı taranmış tutanakta büyük harfle yazılmış olup Türkçe "
-         "İ/I harfleri ayırt edilememiştir. Taraf vekillerinin beyanları "
-         "ve dosyadaki belgeler birlikte değerlendirilerek aşağıdaki "
-         "şekilde hüküm kurulmuştur.\n", None),
+        (" dinlenmis, beyani tutanaga gecirilmistir. Taraf vekillerinin "
+         "beyanlari ve dosyadaki belgeler birlikte degerlendirilerek "
+         "asagidaki sekilde hukum kurulmustur.\n", None),
     ])

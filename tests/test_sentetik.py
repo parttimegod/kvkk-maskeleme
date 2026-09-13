@@ -187,16 +187,16 @@ def test_bozuk_metin_etiket_konumlari_dogru():
         assert belge.metin[e.baslangic : e.bitis] == e.deger
 
 
-def test_soyadi_yay_hasarli_anafor_baglantisi_kurulmuyor():
-    """Bilinen bir açık, düzeltme değil: bu testin amacı davranışı KAYDETMEK.
+def test_soyadi_yay_hasarli_anaforu_baglıyor():
+    """OCR hasarı soyad bağını koparmıyor.
 
-    soyadi_yay tam alt dizi eşleşmesiyle çalışıyor (bkz. model.py). Tam
-    ad temiz bulunduysa ("Ayşe Yıldırım") ve sonrasında çıplak soyadı
-    OCR hasarıyla farklı yazılmışsa ("Yildirim", aksansız), aranan
-    dize ile metindeki dize birebir eşleşmediği için bağlantı KURULMUYOR.
-    Bu, bozuk_metin'in sınadığı tam senaryo. xfail değil çünkü bu bir
-    hata değil -- mevcut tasarımın bilinen sınırı; burada kayıtlı olması
-    ileride biri "neden düzeltmiyoruz" diye sorduğunda cevap versin diye.
+    Tam ad temiz bulunuyor ("Ayşe Yıldırım") ama taranmış nüshada aynı
+    kişiye yapılan çıplak atıf aksansız ("Yildirim"). Tam alt dizi
+    eşleşmesi bunu kaçırıyordu: 160 hasarlı etiketten kaçan 40'ın
+    tamamı bu sınıftandı. Arama artık aksansız yapılıyor.
+
+    Maskelenen değer metinde geçtiği hâliyle kaydediliyor -- katlanmış
+    hâli değil, çünkü metinden silinecek olan asıl dizi.
     """
     metin = (
         "Duruşmada dinlenen Ayşe Yıldırım beyanında bulunmuştur. Taranmış "
@@ -207,10 +207,24 @@ def test_soyadi_yay_hasarli_anafor_baglantisi_kurulmuyor():
     bas = metin.index(tam_ad)
     tam_ad_bulgusu = Bulgu("AD", bas, bas + len(tam_ad), tam_ad)
 
-    yeni = soyadi_yay(metin, [tam_ad_bulgusu])
+    (b,) = soyadi_yay(metin, [tam_ad_bulgusu])
 
-    assert yeni == []
-    assert "Yildirim" not in [b.deger for b in yeni]
+    assert b.deger == "Yildirim"
+    assert metin[b.baslangic:b.bitis] == "Yildirim"
+    assert b.kaynak == "soyad"
+
+
+def test_soyadi_yay_kucuk_harfli_kelimeyi_ad_saymiyor():
+    """Aksan katlanıyor ama harf büyüklüğü katlanmıyor.
+
+    Soyadı Aslan olan birinin belgesinde "aslan gibi" ifadesi geçebilir;
+    katlama küçültme de yapsaydı bu ad sayılırdı.
+    """
+    metin = "Davacı Mehmet Aslan dinlendi. Taraf aslan gibi direnmiştir."
+    bas = metin.index("Mehmet Aslan")
+    bulgu = Bulgu("AD", bas, bas + len("Mehmet Aslan"), "Mehmet Aslan")
+
+    assert soyadi_yay(metin, [bulgu]) == []
 
 
 def test_butun_ureticiler_ornekleme_giriyor():
