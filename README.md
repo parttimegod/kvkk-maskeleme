@@ -503,9 +503,9 @@ in the text cannot be a position in it — but the count is reported, so
 the fabrication rate of a given model is visible instead of hidden.
 
 **This measurement is not bit-reproducible.** At temperature 0, repeated
-runs over the same documents differ by about 2 names out of 380
-(roughly 0.5%) from one run to the next. Recall is therefore quoted to
-one decimal place at most — a second decimal would be false precision.
+runs over the same documents still differ by a couple of names — well
+under one percent, but not zero. Recall is therefore quoted to one
+decimal place at most; a second decimal would be false precision.
 
 **The 100% in 0.2.0 was an upper bound, and here is what closing it
 took.** The generator originally placed every name in a predictable

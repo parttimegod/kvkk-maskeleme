@@ -672,9 +672,10 @@ def bozuk_metin(tohum: int = 0) -> Belge:
     3. Aksanları düşmüş adres.
     4. Anafor hasar altında, iki yönde: bir yerde tam ad temiz, sonraki
        çıplak soyadı hasarlı; başka bir yerde tam ad hasarlı, sonraki
-       çıplak soyadı temiz. model.soyadi_yay tam alt dizi eşleşmesiyle
-       çalışıyor -- bu, OCR hasarının o eşleşmeyi kırıp kırmadığını
-       sınıyor (bkz. test_sentetik.py, bilinen bir açık olarak kayıtlı).
+       çıplak soyadı temiz. Bu ikisi model.soyadi_yay'ı tam alt dizi
+       eşleşmesi yaptığı için kırıyordu -- 160 hasarlı etiketten kaçan
+       40'ın tamamı buydu. soyadi_yay artık aksan katlanmış metinde
+       arıyor; bu iki durum onun regresyon testidir.
     5. BÜYÜK HARF ad, Türkçe I/İ ayrımının kaybolmasıyla.
     """
     r = random.Random(tohum + 10000)
