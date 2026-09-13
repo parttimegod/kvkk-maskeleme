@@ -173,9 +173,52 @@ def soyadi_yay(metin: str, bulgular: list[Bulgu]) -> list[Bulgu]:
     return yeni
 
 
+# Adresin devamı: mahalleden sonra gelen cadde/sokak/numara/kat zinciri.
+# Sonda il adı da olabiliyor ("... No: 39/2 Bursa").
+_ADRES_DEVAMI = re.compile(
+    r"(?:\s+\d+\s*\.?\s*(?:Cadde|Caddesi|Sokak|Sokağı|Sk\.?|Cd\.?|Bulvar\w*))*"
+    r"(?:\s+No\s*:?\s*\d+(?:\s*/\s*\d+)?)?"
+    r"(?:\s+(?:Kat|Daire|Blok|D)\s*\.?\s*:?\s*\d+)*"
+)
+
+
+def adresi_genislet(metin: str, bulgular: list[Bulgu]) -> list[Bulgu]:
+    """Yarım bulunan adresi sonuna kadar götürür.
+
+    Metinde adres sözcüğü geçmiyorsa model çoğu zaman yalnızca mahalleyi
+    döndürüyor: "Tebligat Kızılay Mahallesi 28. Cadde No: 20 numarasına
+    yapılmıştır" cümlesinde bulduğu şey "Kızılay Mahallesi" oluyor.
+    Ölçüldü: 140 adresten kaçan 5'inin **tamamı** bu biçimdeydi.
+
+    Bu, kaçırmaktan farklı ve daha sinsi bir hata: alan maskeleniyor ama
+    yarısı maskeleniyor. Çıktıda "<ADRES_1> 28. Cadde No: 20" kalıyor,
+    yani sokak ve kapı numarası açıkta. Ölçümün birebir metin eşleşmesi
+    araması tam da bunu yakalamak içindi; konum örtüşmesine baksaydık
+    "bulundu" sayacaktık.
+
+    Uzatma yalnızca adres olduğu belli bir zincirde yapılıyor; devamı
+    uymuyorsa bulgu olduğu gibi kalıyor.
+    """
+    genisletilmis: list[Bulgu] = []
+    for b in bulgular:
+        if b.tur != "ADRES":
+            genisletilmis.append(b)
+            continue
+        m = _ADRES_DEVAMI.match(metin, b.bitis)
+        if m is None or m.end() == b.bitis:
+            genisletilmis.append(b)
+            continue
+        son = m.end()
+        genisletilmis.append(
+            Bulgu("ADRES", b.baslangic, son, metin[b.baslangic:son], kaynak="adres")
+        )
+    return genisletilmis
+
+
 def bul(metin: str, saglayici: Saglayici) -> ModelSonucu:
     sonuc = cevabi_coz(metin, saglayici.sor(istem_hazirla(metin)))
     sonuc.bulgular.extend(soyadi_yay(metin, sonuc.bulgular))
+    sonuc.bulgular = adresi_genislet(metin, sonuc.bulgular)
     return sonuc
 
 

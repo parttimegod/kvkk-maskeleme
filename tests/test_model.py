@@ -167,3 +167,55 @@ def test_bozuk_cevap_maskelemeyi_patlatmiyor():
 
     assert sonuc.model_bicim_hatasi
     assert sonuc.metin == METIN  # bu metinde yapısal veri yok
+
+
+# --- adresi_genislet -------------------------------------------------
+
+def _cevap(*ogeler):
+    import json
+
+    return json.dumps(list(ogeler), ensure_ascii=False)
+
+
+def test_yarim_adres_sonuna_kadar_uzatiliyor():
+    """Adres sözcüğü yoksa model yalnız mahalleyi döndürüyor; sokak ve
+    kapı numarası maskelenmeden kalıyordu. Kaçırmaktan sinsi bir hata:
+    alan maskeleniyor ama yarısı."""
+    metin = "Tebligat Kızılay Mahallesi 28. Cadde No: 20 numarasına yapılmıştır."
+    sonuc = bul(metin, SahteSaglayici(
+        cevap=_cevap({"tur": "ADRES", "deger": "Kızılay Mahallesi"})
+    ))
+
+    (b,) = [x for x in sonuc.bulgular if x.tur == "ADRES"]
+    assert metin[b.baslangic:b.bitis] == "Kızılay Mahallesi 28. Cadde No: 20"
+    assert b.kaynak == "adres"
+
+
+def test_sadece_mahalle_gereksiz_uzatilmiyor():
+    """Devamı adres zinciri değilse bulgu olduğu gibi kalmalı."""
+    metin = "Davalı, Bahçelievler Mahallesi'nde ikamet etmektedir."
+    sonuc = bul(metin, SahteSaglayici(
+        cevap=_cevap({"tur": "ADRES", "deger": "Bahçelievler Mahallesi"})
+    ))
+
+    (b,) = [x for x in sonuc.bulgular if x.tur == "ADRES"]
+    assert metin[b.baslangic:b.bitis] == "Bahçelievler Mahallesi"
+
+
+def test_tam_adres_bozulmuyor():
+    metin = "Müvekkil Yeni Mahallesi 43. Sokak No: 39/2 Bursa adresinde oturur."
+    tam = "Yeni Mahallesi 43. Sokak No: 39/2 Bursa"
+    sonuc = bul(metin, SahteSaglayici(cevap=_cevap({"tur": "ADRES", "deger": tam})))
+
+    (b,) = [x for x in sonuc.bulgular if x.tur == "ADRES"]
+    assert metin[b.baslangic:b.bitis] == tam
+
+
+def test_ad_bulgusu_adres_uzatmasindan_etkilenmiyor():
+    metin = "Davacı Ahmet Yılmaz 5. Sokak No: 3 adresinde oturur."
+    sonuc = bul(metin, SahteSaglayici(
+        cevap=_cevap({"tur": "AD", "deger": "Ahmet Yılmaz"})
+    ))
+
+    (b,) = [x for x in sonuc.bulgular if x.tur == "AD"]
+    assert metin[b.baslangic:b.bitis] == "Ahmet Yılmaz"
