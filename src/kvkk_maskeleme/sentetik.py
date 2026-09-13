@@ -17,6 +17,7 @@ testi içindir, kimseyi temsil etmezler.
 from __future__ import annotations
 
 import random
+import re
 from dataclasses import dataclass, field
 
 from .kimlik import tc_kontrol_haneleri, vkn_kontrol_hanesi
@@ -319,6 +320,12 @@ TEMIZ_CUMLELER = (
     # "mahallinde" (olay yerinde) "mahalle" değildir -- bilinçli yakın-ıskalama.
     "Keşif mahallinde gerekli inceleme yapılmıştır.",
     "Tapu kaydı ilgili tapu müdürlüğünden celp edilmiştir.",
+    # bozuk_metin ile aynı amaç: aksanı düşünce ada benziyormuş gibi
+    # görünen sıradan kelimeler. Hasar sözlük katmanında yanlış pozitif
+    # üretmemeli.
+    "Olay denız kenarında meydana gelmıstır.",
+    "Taraflar barıs ıcınde ayrılmıstır.",
+    "Dosya ıcerıgı incelenmistir.",
 )
 
 
@@ -330,14 +337,16 @@ def temiz_belgeler() -> list[Belge]:
 def ornekler(adet: int = 20) -> list[Belge]:
     """Ölçüm için belge kümesi.
 
-    On tür. Hepsi bir arada her tanımlayıcı türünü en az bir kez
+    On bir tür. Hepsi bir arada her tanımlayıcı türünü en az bir kez
     içeriyor; bir tür hiçbir belgede geçmiyorsa ölçüm tablosu tam
     görünüp aslında eksik olur.
 
     Duruşma tutanağı bilerek temiz ve yanlış pozitif tuzakları taşıyor.
     zor_metin adları etiketsiz, düzyazı içinde taşıyor; zor_adres aynısını
     adresler için yapıyor -- AD/ADRES recall'ının üreteci değil aracı
-    ölçmesi için.
+    ölçmesi için. bozuk_metin aynı ilkeyi OCR/tarama hasarı için yapıyor:
+    ad ve adres orada değil burada bozuluyor, araç hasarlı hâliyle
+    ölçülüyor.
     """
     belgeler = []
     for i in range(adet):
@@ -351,6 +360,7 @@ def ornekler(adet: int = 20) -> list[Belge]:
         belgeler.append(saglik_raporu(i))
         belgeler.append(zor_metin(i))
         belgeler.append(zor_adres(i))
+        belgeler.append(bozuk_metin(i))
     return belgeler
 
 
@@ -571,4 +581,158 @@ def durusma_tutanagi(tohum: int = 0) -> Belge:
         (" dinlenmek üzere çağrıldı. Tanığın dinlenmesine karar verildi. "
          "Beyanı alındı ve tutanağa geçirildi. Dosyanın incelenmesi için "
          "duruşma ertelenmiştir.\n", None),
+    ])
+
+
+# Aksan katlaması: ş/ğ/ö/ü/ç ve büyük İ, tarayıcı Türkçe olmayan bir
+# profille çalıştığında en yakın düz Latin harfe düşer. "ı" burada YOK
+# -- iki farklı hasar biçiminde iki farklı hedefe gidiyor (aşağıya bkz.),
+# o yüzden ayrı ele alınıyor.
+_AKSAN_KATLAMA = str.maketrans({
+    "ş": "s", "Ş": "S",
+    "ğ": "g", "Ğ": "G",
+    "ö": "o", "Ö": "O",
+    "ü": "u", "Ü": "U",
+    "ç": "c", "Ç": "C",
+    "İ": "I",
+})
+
+# "rn" iki harf yan yana taranınca "m"ye, "m" de bazı fontlarda "rn"ye
+# benziyor. Büyük harfe bilerek uygulanmıyor: blok harfle yazılan
+# başlıklarda (bkz. bozuk_metin şekil 5) bu karışıklık gözlenmiyor.
+_RN_M_DESENI = re.compile(r"rn|m")
+
+
+def ocr_hasari_uygula(
+    metin: str,
+    r: random.Random,
+    *,
+    glif_karisikligi: bool = False,
+    rn_m_karisikligi: bool = False,
+) -> str:
+    """Taranmış bir belgede gerçekten görülen OCR/harf-okuma hasarını simüle eder.
+
+    tespit.py'deki OCR onarımı kontrol hanesini yeniden doğrulayarak
+    çalışıyor; ad ve adreste kontrol hanesi yok, o yaklaşım buraya
+    taşınamaz. Bu fonksiyon onarmıyor, tam tersini yapıyor: hasarı
+    üretiyor, araç hasarlı hâliyle -- hiç onarılmadan -- ölçülüyor.
+
+    İki taban davranış var:
+
+    - Varsayılan (`glif_karisikligi=False`): tarayıcı Türkçe olmayan bir
+      profille çalıştığında görülen en yaygın hasar. Bütün aksanlar
+      sessizce düşer: ş->s, ğ->g, ı->i, İ->I, ö->o, ü->u, ç->c.
+    - `glif_karisikligi=True`: "ı" harfi "i" değil, görsel olarak
+      karışan "l" ya da "1" olarak okunur -- klasik glif karışıklığı.
+      Diğer aksanlar (ş, ğ, İ, ö, ü, ç) yine aynı şekilde düşer; onların
+      Latin karşılığı zaten tek ve belirsizliksiz, karışacak ikinci bir
+      aday yok.
+
+    `rn_m_karisikligi=True` verilirse küçük harfli "rn"/"m" dizileri
+    rastgele yön değiştirir. Varsayılan kapalı: bu değişim harf sayısını
+    değiştiriyor, o yüzden yalnızca açıkça istendiğinde uygulanıyor.
+
+    `r` aynı durumdaysa çıktı da birebir aynıdır -- ölçüm tekrarlanabilir
+    olsun diye. Türkçe karakter içeren bir girdi için çıktı girdiden HER
+    ZAMAN farklıdır; sessizce aynısını döndürmek hasarı gizler.
+    """
+    hasarli = metin.translate(_AKSAN_KATLAMA)
+    if glif_karisikligi:
+        hasarli = "".join(r.choice(("l", "1")) if c == "ı" else c for c in hasarli)
+    else:
+        hasarli = hasarli.replace("ı", "i")
+
+    if rn_m_karisikligi:
+
+        def _degistir(m: re.Match[str]) -> str:
+            parca = m.group()
+            karsilik = "m" if parca == "rn" else "rn"
+            return karsilik if r.random() < 0.6 else parca
+
+        hasarli = _RN_M_DESENI.sub(_degistir, hasarli)
+
+    return hasarli
+
+
+def bozuk_metin(tohum: int = 0) -> Belge:
+    """OCR/tarama hasarı görmüş adliye metni: ad ve adres orijinal değil,
+    taranmış belgede gerçekten çıkan bozuk hâlleriyle geçiyor.
+
+    zor_metin ve zor_adres'in yaptığını burada OCR hasarı için yapıyoruz:
+    etiket değeri metinde GEÇTİĞİ HÂLİYLEDİR -- maskelenmesi gereken
+    hasarlı ad/adrestir, temiz hâli değil. tespit.py'deki OCR onarımı
+    kontrol hanesi olan alanlar (TC, VKN...) için var; burada kontrol
+    hanesi yok, o onarım aktarılamıyor. Bu üretici onarmıyor, aracın
+    hasarlı hâliyle -- çıplak -- nasıl başa çıktığını ölçüyor.
+
+    Beş durum:
+
+    1. Tüm aksanları düşmüş tam ad.
+    2. Klasik glif karışıklığı: "ı" -> "l" ya da "1".
+    3. Aksanları düşmüş adres.
+    4. Anafor hasar altında, iki yönde: bir yerde tam ad temiz, sonraki
+       çıplak soyadı hasarlı; başka bir yerde tam ad hasarlı, sonraki
+       çıplak soyadı temiz. model.soyadi_yay tam alt dizi eşleşmesiyle
+       çalışıyor -- bu, OCR hasarının o eşleşmeyi kırıp kırmadığını
+       sınıyor (bkz. test_sentetik.py, bilinen bir açık olarak kayıtlı).
+    5. BÜYÜK HARF ad, Türkçe I/İ ayrımının kaybolmasıyla.
+    """
+    r = random.Random(tohum + 10000)
+
+    # 1. tam aksan düşmesi.
+    ad1 = "Ayşe Yıldırım"
+    ad1_hasarli = ocr_hasari_uygula(ad1, r)
+
+    # 2. glif karışıklığı (ı -> l/1).
+    ad2 = "Mustafa Kılıç"
+    ad2_hasarli = ocr_hasari_uygula(ad2, r, glif_karisikligi=True)
+
+    # 3. adres, aksan düşmesi.
+    adres1 = "Bahçelievler Mahallesi 12. Sokak No: 5"
+    adres1_hasarli = ocr_hasari_uygula(adres1, r)
+
+    # 4a. anafor: tam ad temiz, sonraki çıplak soyadı hasarlı.
+    ad3 = "Elif Şahin"
+    ad3_soyad_hasarli = ocr_hasari_uygula("Şahin", r)
+
+    # 4b. anafor: tam ad hasarlı, sonraki çıplak soyadı temiz.
+    ad4 = "Zeynep Öztürk"
+    ad4_hasarli = ocr_hasari_uygula(ad4, r)
+    ad4_soyad_temiz = ad4.split(" ", 1)[1]
+
+    # 5. büyük harf, I/İ ayrımının kaybolması.
+    ad5 = "İBRAHİM ŞAHİN"
+    ad5_hasarli = ocr_hasari_uygula(ad5, r)
+
+    return _yerlestir([
+        (f"ANTALYA {r.randint(1, 12)}. ASLİYE HUKUK MAHKEMESİ\n\n", None),
+        ("GEREKÇELİ KARAR\n\n", None),
+        ("Dosyaya sunulan taranmış nüshada, davacı vekili tarafından ibraz "
+         "edilen belgede müvekkilinin adının ", None),
+        (ad1_hasarli, "AD"),
+        (" şeklinde okunduğu, tarama sırasında Türkçe karakterlerin "
+         "düştüğü tespit edilmiştir. Aynı nüshada davalı tarafın adının ",
+         None),
+        (ad2_hasarli, "AD"),
+        (" şeklinde çıktığı, harf tanıma hatası nedeniyle bazı harflerin "
+         "birbirine karıştığı görülmüştür. Müvekkilin ikamet adresi "
+         "taranan nüshada ", None),
+        (adres1_hasarli, "ADRES"),
+        (" şeklinde geçmektedir. Duruşmada dinlenen ", None),
+        (ad3, "AD"),
+        (", beyanında olayı ayrıntılı biçimde anlatmıştır. Aynı celsede "
+         "taranan tutanak nüshasında yalnızca soyadıyla geçen ", None),
+        (ad3_soyad_hasarli, "AD"),
+        (" ifadesinin de aynı kişiye ait olduğu değerlendirilmiştir. "
+         "Taranmış ihbarname nüshasında müvekkilin adı ", None),
+        (ad4_hasarli, "AD"),
+        (" şeklinde okunmuş olsa da, dosyaya sonradan sunulan temiz "
+         "nüshada aynı kişi yalnızca soyadıyla ", None),
+        (ad4_soyad_temiz, "AD"),
+        (" olarak anılmıştır. Tanık olarak dinlenen ", None),
+        (ad5_hasarli, "AD"),
+        (" başlıklı taranmış tutanakta büyük harfle yazılmış olup Türkçe "
+         "İ/I harfleri ayırt edilememiştir. Taraf vekillerinin beyanları "
+         "ve dosyadaki belgeler birlikte değerlendirilerek aşağıdaki "
+         "şekilde hüküm kurulmuştur.\n", None),
     ])

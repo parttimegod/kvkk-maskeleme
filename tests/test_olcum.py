@@ -69,7 +69,7 @@ def test_bozuk_cevap_sayiliyor():
 
 def test_belge_sayisi_dogru():
     rapor = calistir(7)
-    assert rapor.belge_sayisi == 70  # on belge türü
+    assert rapor.belge_sayisi == 77  # on bir belge türü
 
 
 def test_tablo_basiliyor():
@@ -162,5 +162,5 @@ def test_cipali_turler_saglayicisiz_olculuyor():
     assert set(rapor.turler) >= CIPALI
 
 
-def test_on_belge_turu():
-    assert calistir(3).belge_sayisi == 30
+def test_on_bir_belge_turu():
+    assert calistir(3).belge_sayisi == 33

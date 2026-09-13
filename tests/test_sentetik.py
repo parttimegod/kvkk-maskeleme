@@ -8,11 +8,20 @@ kontrolü) ve yeni tuzak cümlelerin ne desen katmanını ne de özel
 nitelikli sözlüğü tetiklemediğini.
 """
 
+import random
+
 import pytest
 
+from kvkk_maskeleme.model import soyadi_yay
 from kvkk_maskeleme.ozel_nitelikli import incele
-from kvkk_maskeleme.sentetik import TEMIZ_CUMLELER, zor_adres, zor_metin
-from kvkk_maskeleme.tespit import bul
+from kvkk_maskeleme.sentetik import (
+    TEMIZ_CUMLELER,
+    bozuk_metin,
+    ocr_hasari_uygula,
+    zor_adres,
+    zor_metin,
+)
+from kvkk_maskeleme.tespit import Bulgu, bul
 
 YENI_TUZAKLAR = (
     "Olay deniz kenarında meydana gelmiştir.",
@@ -103,6 +112,105 @@ def test_zor_adres_etiketleri_hal_ekiyle_bitmiyor():
             continue
         for ek in _HAL_EKI_PARCALARI:
             assert not e.deger.endswith(ek), f"{e.deger!r} ek ile bitiyor: {ek!r}"
+
+
+OCR_TUZAKLARI = (
+    "Olay denız kenarında meydana gelmıstır.",
+    "Taraflar barıs ıcınde ayrılmıstır.",
+    "Dosya ıcerıgı incelenmistir.",
+)
+
+
+def test_ocr_tuzaklari_temiz_cumleler_icinde():
+    for cumle in OCR_TUZAKLARI:
+        assert cumle in TEMIZ_CUMLELER
+
+
+@pytest.mark.parametrize("cumle", OCR_TUZAKLARI)
+def test_ocr_tuzagi_desen_katmaninda_yanlis_pozitif_degil(cumle):
+    assert bul(cumle) == []
+
+
+@pytest.mark.parametrize("cumle", OCR_TUZAKLARI)
+def test_ocr_tuzagi_ozel_nitelikli_sozlukte_yanlis_pozitif_degil(cumle):
+    assert incele(cumle).bulgular == []
+
+
+def test_ocr_hasari_uygula_turkce_karakterli_girdiyi_degistirir():
+    r = random.Random(0)
+    girdi = "Şişli'de oturan Güçlü Öztürk'ün ifadesi alınmıştır."
+    assert ocr_hasari_uygula(girdi, r) != girdi
+
+
+def test_ocr_hasari_uygula_glif_karisikligiyla_da_degistirir():
+    r = random.Random(0)
+    girdi = "Kılıç'ın beyanı çelişkilidir."
+    assert ocr_hasari_uygula(girdi, r, glif_karisikligi=True) != girdi
+
+
+def test_ocr_hasari_uygula_deterministik():
+    """Aynı tohumla üretilmiş random.Random aynı hasarı vermeli --
+    ölçümün tekrarlanabilir olması buna dayanıyor."""
+    girdi = "Kılıç'ın beyanı çelişkilidir."
+    hasar1 = ocr_hasari_uygula(girdi, random.Random(42), glif_karisikligi=True)
+    hasar2 = ocr_hasari_uygula(girdi, random.Random(42), glif_karisikligi=True)
+    assert hasar1 == hasar2
+
+
+def test_ocr_hasari_uygula_rn_m_karisikligi_calisabiliyor():
+    """rn/m karışıklığı olasılıklı; birkaç tohumdan en az biri tetiklemeli.
+
+    Kod yolunun ölü olmadığını göstermek için -- tek bir tohuma
+    bağlanmıyor, aksi hâlde olasılık değişirse test kırılgan olurdu.
+    """
+    girdi = "kerim demir teslim edilmiştir"
+    degisti = any(
+        ocr_hasari_uygula(girdi, random.Random(t), rn_m_karisikligi=True) != girdi
+        for t in range(30)
+    )
+    assert degisti
+
+
+def test_bozuk_metin_en_az_uc_ad_ve_bir_adres_etiketi_iceriyor():
+    belge = bozuk_metin(0)
+    ad_sayisi = sum(1 for e in belge.etiketler if e.tur == "AD")
+    adres_sayisi = sum(1 for e in belge.etiketler if e.tur == "ADRES")
+    assert ad_sayisi >= 3
+    assert adres_sayisi >= 1
+
+
+def test_bozuk_metin_etiket_konumlari_dogru():
+    """_yerlestir'in off-by-one hatası yapmadığının kontrolü."""
+    belge = bozuk_metin(1)
+    assert belge.etiketler
+    for e in belge.etiketler:
+        assert belge.metin[e.baslangic : e.bitis] == e.deger
+
+
+def test_soyadi_yay_hasarli_anafor_baglantisi_kurulmuyor():
+    """Bilinen bir açık, düzeltme değil: bu testin amacı davranışı KAYDETMEK.
+
+    soyadi_yay tam alt dizi eşleşmesiyle çalışıyor (bkz. model.py). Tam
+    ad temiz bulunduysa ("Ayşe Yıldırım") ve sonrasında çıplak soyadı
+    OCR hasarıyla farklı yazılmışsa ("Yildirim", aksansız), aranan
+    dize ile metindeki dize birebir eşleşmediği için bağlantı KURULMUYOR.
+    Bu, bozuk_metin'in sınadığı tam senaryo. xfail değil çünkü bu bir
+    hata değil -- mevcut tasarımın bilinen sınırı; burada kayıtlı olması
+    ileride biri "neden düzeltmiyoruz" diye sorduğunda cevap versin diye.
+    """
+    metin = (
+        "Duruşmada dinlenen Ayşe Yıldırım beyanında bulunmuştur. Taranmış "
+        "nüshada yalnızca soyadıyla geçen Yildirim ifadesi de aynı kişiye "
+        "aittir."
+    )
+    tam_ad = "Ayşe Yıldırım"
+    bas = metin.index(tam_ad)
+    tam_ad_bulgusu = Bulgu("AD", bas, bas + len(tam_ad), tam_ad)
+
+    yeni = soyadi_yay(metin, [tam_ad_bulgusu])
+
+    assert yeni == []
+    assert "Yildirim" not in [b.deger for b in yeni]
 
 
 def test_butun_ureticiler_ornekleme_giriyor():
