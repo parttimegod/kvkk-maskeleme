@@ -204,6 +204,19 @@ uv add git+https://github.com/parttimegod/kvkk-maskeleme
 Requirements: Python 3.11+ and [uv](https://docs.astral.sh/uv/). The
 package itself has no dependencies, only the standard library.
 
+## Local REST API
+
+The optional FastAPI adapter accepts synthetic text at `POST /mask`. Start it
+with one command (Python 3.11+ and uv required):
+
+```bash
+uv run --extra api uvicorn kvkk_maskeleme.api:app --host 127.0.0.1 --port 8000
+```
+
+See [API.md](API.md) for a sample request/response, tests, limitations, and a
+two-minute demo script. The API returns no reversal mapping and always marks
+the result for manual review.
+
 ## Command line
 
 ```bash
@@ -667,7 +680,7 @@ represent anyone.
 ## Tests
 
 ```bash
-uv run pytest
+uv run --extra api pytest
 uv run ruff check .
 ```
 
