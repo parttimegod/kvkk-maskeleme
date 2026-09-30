@@ -218,6 +218,9 @@ two-minute demo script. The API returns no reversal mapping and always marks
 the result for manual review. Input is limited to 100,000 characters and
 a 1 MiB request body, including streamed requests.
 
+See [INTERVIEW.md](INTERVIEW.md) for a short English project explanation
+and interview questions with references to the code and tests.
+
 ## Command line
 
 ```bash
