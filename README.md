@@ -210,12 +210,13 @@ The optional FastAPI adapter accepts synthetic text at `POST /mask`. Start it
 with one command (Python 3.11+ and uv required):
 
 ```bash
-uv run --extra api uvicorn kvkk_maskeleme.api:app --host 127.0.0.1 --port 8000
+uv run --locked --extra api uvicorn kvkk_maskeleme.api:app --host 127.0.0.1 --port 8000 --no-access-log
 ```
 
 See [API.md](API.md) for a sample request/response, tests, limitations, and a
 two-minute demo script. The API returns no reversal mapping and always marks
-the result for manual review.
+the result for manual review. Input is limited to 100,000 characters and
+a 1 MiB request body, including streamed requests.
 
 ## Command line
 
@@ -680,8 +681,8 @@ represent anyone.
 ## Tests
 
 ```bash
-uv run --extra api pytest
-uv run ruff check .
+uv run --locked --extra api pytest
+uv run --locked --extra api ruff check .
 ```
 
 ## License

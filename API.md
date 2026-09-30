@@ -8,7 +8,7 @@ synthetic text for this demo and does not need a database or an Ollama model.
 Install [uv](https://docs.astral.sh/uv/) and use Python 3.11+. From this repo:
 
 ```bash
-uv run --extra api uvicorn kvkk_maskeleme.api:app --host 127.0.0.1 --port 8000
+uv run --locked --extra api uvicorn kvkk_maskeleme.api:app --host 127.0.0.1 --port 8000 --no-access-log
 ```
 
 In another terminal, send a synthetic example:
@@ -30,16 +30,27 @@ Response:
 }
 ```
 
-The input must be JSON with one nonblank string `text` (at most 100,000
-characters). Invalid input returns HTTP 422 with a generic error that does
-not echo the submitted text. Responses use `Cache-Control: no-store`.
+The input must be JSON with one nonblank Unicode string `text` (at most
+100,000 characters). Invalid fields, extra fields and unpaired Unicode
+surrogates return HTTP 422 with a generic error that does not echo the input.
+Malformed JSON/encoding can return HTTP 400 or 422 without a document.
+
+The entire request body is limited to **1 MiB (1,048,576 bytes)** before
+JSON parsing. This checks actual bytes, including streamed requests,
+rather than trusting `Content-Length`. Larger bodies return HTTP 413 with
+`{"error":"Request body too large"}`. Masking and validation responses
+use `Cache-Control: no-store`.
+
+`counts` counts occurrences, not unique values. Identically written repeated
+values share a placeholder within a request; numbering restarts per request.
 Interactive local API docs are at `http://127.0.0.1:8000/docs`.
 
 ## Verify
 
 ```bash
-uv run --extra api pytest
-uv run ruff check .
+uv sync --locked --all-extras
+uv run --locked --extra api pytest
+uv run --locked --extra api ruff check .
 ```
 
 ## Two-minute demo
@@ -64,3 +75,10 @@ flag, not removal of sensitive context. A clean flag does not prove the text
 is safe. Every result requires human review; the tool does not certify
 anonymization or legal compliance. Keep this unauthenticated demo on localhost
 and use only synthetic input.
+
+The library's optional model layer is not exposed by this endpoint; its
+name/address recall figures in the README do not describe this HTTP demo.
+Invalid checksums and unsupported formats may remain unmasked. Raw text and
+the temporary restore mapping exist in process memory during a request;
+no secure memory-erasure guarantee is made. The startup command disables
+access logs; deployment/proxy logging is outside this local demo's scope.
