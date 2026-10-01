@@ -1,15 +1,8 @@
-"""Model katmanı — isim, adres ve kurum tespiti.
+"""İsim, adres ve kurum adaylarını model cevabından metin konumlarına çevirir.
 
-Desen katmanı yapısal kimlikleri buluyor. İsim ve adres desenle
-bulunamıyor: Türkçe adların bir kısmı günlük kelimeyle çakışıyor
-(Deniz, Umut, Şafak, Barış, Güneş), yani "büyük harfle başlayan kelime"
-kuralı hem kaçırıyor hem yanlış yakalıyor. Bağlam gerekiyor.
-
-Buradaki asıl tasarım kararı: **modelden konum istemiyoruz, metin
-istiyoruz.** Modeller karakter saymayı beceremiyor; "45. karakterden
-56'ya kadar" dediğinde çoğu zaman yanlış oluyor. Bunun yerine bulduğu
-ifadeyi aynen yazmasını istiyoruz, konumu biz buluyoruz. Yan faydası:
-metinde geçmeyen bir ifade dönerse uydurma olduğu anlaşılıyor.
+Modelden karakter konumu yerine özgün ifade istenir. Metinde bulunmayan
+ifadeler uydurma listesine alınır. Bir ifadenin metinde geçmesi, doğru
+kategoride veya doğru kişiye ait olduğu anlamına gelmez.
 """
 
 from __future__ import annotations
@@ -155,18 +148,11 @@ def _aksansiz(s: str) -> str:
 
 
 def soyadi_yay(metin: str, bulgular: list[Bulgu]) -> list[Bulgu]:
-    """Tam adı bulunan kişinin yalnız geçen soyadını da işaretler.
+    """Tam ad bulgusundan alınan soyadın diğer geçişlerini işaretler.
 
-    Adliye metninde kişi bir kez tam adıyla anılıp sonrasında yalnızca
-    soyadıyla geçiyor: "Güneş Yıldız'ın beyanı alınmış... aynı celsede
-    dinlenen Yıldız, beyanında...". Model ikincisini kaçırıyor -- 160
-    belgelik ölçümde kaçan adların **tamamı** bu biçimdeydi, ve kaçanlar
-    günlük kelimeyle çakışan soyadlarda yoğunlaşıyordu (Aydın, Kaya,
-    Yıldız, Aslan).
-
-    Modele "bunu da bul" demek yerine burada arıyoruz: tam adı zaten
-    bulduysak soyadın o belgedeki diğer geçişleri aynı kişidir. Kaçan
-    isim sızıntı demek olduğu için bu katmanda tahmine yer yok.
+    Arama aksanları katlar, harf büyüklüğünü korur ve bazı il/ilçe
+    eklerini dışlar. Bu bir bağlam sezgisidir; aynı soyadın her geçişi
+    aynı kişiye ait olmayabilir.
     """
     mevcut = [(b.baslangic, b.bitis) for b in bulgular]
     yeni: list[Bulgu] = []
@@ -210,21 +196,10 @@ _ADRES_DEVAMI = re.compile(
 
 
 def adresi_genislet(metin: str, bulgular: list[Bulgu]) -> list[Bulgu]:
-    """Yarım bulunan adresi sonuna kadar götürür.
+    """ADRES bulgusunu hemen ardından gelen cadde/numara zincirine uzatır.
 
-    Metinde adres sözcüğü geçmiyorsa model çoğu zaman yalnızca mahalleyi
-    döndürüyor: "Tebligat Kızılay Mahallesi 28. Cadde No: 20 numarasına
-    yapılmıştır" cümlesinde bulduğu şey "Kızılay Mahallesi" oluyor.
-    Ölçüldü: 140 adresten kaçan 5'inin **tamamı** bu biçimdeydi.
-
-    Bu, kaçırmaktan farklı ve daha sinsi bir hata: alan maskeleniyor ama
-    yarısı maskeleniyor. Çıktıda "<ADRES_1> 28. Cadde No: 20" kalıyor,
-    yani sokak ve kapı numarası açıkta. Ölçümün birebir metin eşleşmesi
-    araması tam da bunu yakalamak içindi; konum örtüşmesine baksaydık
-    "bulundu" sayacaktık.
-
-    Uzatma yalnızca adres olduğu belli bir zincirde yapılıyor; devamı
-    uymuyorsa bulgu olduğu gibi kalıyor.
+    Örneğin yalnızca mahalle adı bulunmuşsa cadde ve kapı numarası da
+    maskelenir. Desene uymayan adres devamları kapsanmaz.
     """
     genisletilmis: list[Bulgu] = []
     for b in bulgular:
@@ -269,36 +244,11 @@ class SahteSaglayici:
 
 @dataclass
 class OllamaSaglayici:
-    """Yerel Ollama sunucusu.
+    """Ollama HTTP sağlayıcısı; varsayılan adres localhost üzerindedir.
 
-    Bağımlılık eklememek için standart kütüphaneyle konuşuyor. Model
-    ancak ilk çağrıda belleğe yükleniyor; bu nesneyi oluşturmak tek
-    başına VRAM tüketmiyor.
-
-    **`dusunme` varsayılan olarak kapalı.** Düşünme modu açık bir model
-    bu işte cevaba hiç varmadan pencereyi doldurabiliyor: ölçtüğümüz
-    bir modelde 16384 token'lık pencerenin tamamı düşünmeye gitti ve
-    cevap boş döndü (`done_reason: length`), aynı istem düşünme
-    kapalıyken 1,4 saniyede doğru JSON verdi. Buradaki iş akıl yürütmek
-    değil, metinde geçen ifadeyi bulup yazmak; düşünme yalnızca maliyet.
-    Boş cevap sessizce kaybolmuyor, `bicim_hatasi` olarak sayılıyor --
-    ama sebebi görünmediği için burada varsayılanı kapalı tutuyoruz.
-
-    `baglam` verilmezse Ollama kendi varsayılanını kullanıyor; bu
-    makinede 4096 çıkıyor ve uzun belgelerde istem sessizce kırpılır.
-
-    Varsayılan model ölçülerek seçildi. 21 belge, aynı istem, düşünme
-    kapalı, tek değişen model (16 GB VRAM):
-
-        model                              AD    KURUM  yanlış poz.  s/belge
-        gemma-4-abliterated:12b-qat      %100    %100        0          1,6
-        qwen3.5-abliterated:9b-q8_0      %100    %100        6          2,5
-        Qwen3.6-abliterated:35b-a3b       %97   %77,8        0          3,8
-
-    Qwen3.5 aynı recall'ı veriyor ama 17 temiz metnin 6'sını yanlışlıkla
-    işaretledi; bu araçta temiz metni kirletmek kabul edilemez. Qwen3.6
-    hem daha yavaş hem kurum adlarında zayıf. Kart değiştiğinde ölçümü
-    tekrarla, bu sıralama donanıma bağlı.
+    Model ilk istekte yüklenir. dusunme=False düşünme modunu kapatır;
+    baglam, num_ctx seçeneğine aktarılır. Uzun belgeler için uygun
+    pencereyi ve model davranışını kullanılan sunucuda sınamak gerekir.
     """
 
     model: str = "huihui_ai/gemma-4-abliterated:12b-qat"

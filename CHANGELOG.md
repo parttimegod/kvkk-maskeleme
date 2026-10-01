@@ -1,238 +1,73 @@
 # Changelog
 
-All notable changes to this project are documented in this file.
+## Unreleased
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+- Added the optional local HTTP adapter with character and body limits,
+  category flags, generic handled errors and no restore map in responses.
+- Identifier recall now requires exact type, position and value matches.
+  The previous type/value rule could credit missed repeated occurrences.
+  Historical model scores below were not rerun under this rule.
+- Placeholder allocation reserves tokens already present in the input.
+  Restore replaces keys in one pass to avoid processing restored values.
+- Rewrote usage, design and measurement notes around the detector's tested
+  scope and known misses.
 
 ## [0.5.0] - 2026-09-13
 
-The first OCR measurement read AD 99.6%, and that number was worthless.
-The generator gave the model two free cues: the document's own prose
-explained the damage ("tarama sırasında Türkçe karakterlerin düştüğü
-tespit edilmiştir" — a real scan does not narrate its own damage), and
-only the names were damaged while the surrounding text stayed clean, so
-the damage itself became the signal that a name was there. Removing
-both cues dropped AD to 91.9% — 40 misses out of 160 damaged labels, all
-of them exactly two values ("Sahin" and "Öztürk", 20 each): the
-mixed-damage anaphora case, where a full name is found clean and the
-later bare surname is damaged, or the reverse. `soyadi_yay` matched
-substrings exactly, so it could not connect "Şahin" to "Sahin" — the
-model itself found every damaged name it was asked to find; the gap was
-in the code around the model, not the model. Folding the search to a
-diacritic-stripped copy of the text closed it: AD is back to 99.6%, now
-measured against a generator that damages the whole document uniformly
-instead of only the names.
-
-### Added
-
-- `bozuk_metin`, a synthetic-document generator that applies OCR/scan
-  damage across the whole document instead of only to names and
-  addresses, and drops the prose that narrated its own damage — both of
-  which had been giving the model a free cue.
-- `ocr_hasari_uygula`, the damage helper behind it: diacritic drop,
-  optional classic glyph confusion (`ı` → `l`/`1`), optional `rn`/`m`
-  confusion.
-- Three OCR trap sentences in `TEMIZ_CUMLELER`.
-
-### Fixed
-
-- `soyadi_yay` could not connect a name to its OCR-damaged later
-  mention: a full name found clean ("Ayşe Yıldırım") and a later bare
-  surname damaged by OCR ("Yildirim") did not match under exact
-  substring search. It now searches a diacritic-folded copy of the
-  text; case is deliberately not folded, so a common noun that happens
-  to be a surname ("aslan gibi") is not caught by mistake.
-- The OCR generator flattered the measurement it was supposed to be
-  testing: it narrated its own damage in the document's prose and left
-  everything but the names and address clean, and both gave the model a
-  free cue that a real scan would not.
+- Added document-wide simulated OCR damage, including diacritic loss and
+  some glyph confusions, without prose announcing the damage.
+- Surname propagation now searches a length-preserving diacritic fold
+  while retaining case. This connects `Şahin` and `Sahin` without also
+  matching lowercase common nouns.
+- Added OCR control sentences. Bare-surname glyph confusion remains open.
 
 ## [0.4.0] - 2026-09-13
 
-The five ADRES misses in this release's first measurement were not
-misses. They were half-masked: given an address with no address-word
-nearby, the model returned only the neighbourhood — "Kızılay Mahallesi"
-out of "Kızılay Mahallesi 28. Cadde No: 20" — so the masked output read
-`Tebligat <ADRES_1> 28. Cadde No: 20 numarasına yapılmıştır.` with the
-street and door number still in the clear. This is worse than a miss,
-because the output looks masked; a span-overlap metric would have
-scored it as found. `olcum.py`'s exact `(type, value)` match is what
-caught it.
-
-### Added
-
-- `zor_adres`, a synthetic-document generator that places addresses in
-  unlabelled prose: the address-word after the address instead of
-  before it, a full province/district/neighbourhood/street chain, a
-  bare neighbourhood name, and an address with no address-word anywhere
-  nearby. Four new trap sentences in `TEMIZ_CUMLELER` covering place
-  references that are not personal addresses.
-- `adresi_genislet`, which extends an ADRES finding through a following
-  street/number/floor chain (`N. Cadde`, `N. Sokak`, `No: N`,
-  `Kat`/`Daire`/`Blok N`) so a half-masked address is masked in full; a
-  finding with no such chain after it is left untouched.
-- `ILCELER`, a province → district mapping used by the synthetic
-  generator so a generated address names a district that actually
-  belongs to its province.
-
-### Fixed
-
-- Half-masked addresses: the model would return only the leading part
-  of an address (typically the neighbourhood) when no address-word
-  appeared near it, leaving the street and door number unmasked in the
-  output. `adresi_genislet` closes this. ADRES recall against
-  unlabelled prose: 96.4% with `zor_adres` alone, 100% with
-  `adresi_genislet` added (200 documents, 10 types × 20: AD 378/380,
-  ADRES 140/140, KURUM 60/60).
-- Ungrammatical Turkish and a non-existent province/district pairing
-  ("İzmir ili Muratpaşa ilçesi") in the address generator, which made
-  the synthetic corpus unrealistic and therefore the measurement
-  against it untrustworthy.
+- Added addresses in unlabelled prose to the generator, including
+  administrative chains and neighbourhood-only mentions.
+- Added address extension through a following street/door/floor chain
+  when a model returns only the neighbourhood.
+- Corrected province/district pairings in generated addresses.
 
 ## [0.3.0] - 2026-09-11
 
-AD (name) recall went 100% → 96.7% → 99.5% across this release. The
-100% was worse than the 99.5% despite being the higher number, because
-it was measured against a generator that only ever placed names in
-predictable labelled slots — a fair test of reading a label off a
-document, not of finding a name that isn't wearing one.
-
-### Added
-
-- `zor_metin`, a synthetic-document generator that places names in
-  unlabelled prose: bare surnames, case-inflected names, names that are
-  also everyday Turkish words, and names not anchored to a role label.
-  Six new trap sentences in `TEMIZ_CUMLELER` covering the same
-  everyday-word names used as ordinary words (deniz, umut, şafak, barış,
-  güneş).
-- `soyadi_yay`, which deterministically propagates a person's surname to
-  its later bare occurrences once their full name has been found
-  elsewhere in the same document — with a guard so "Aydın ili" (a
-  province) is not masked as if Aydın were a person.
-- `test_butun_ureticiler_ornekleme_giriyor`, a guard test asserting
-  every synthetic-document generator function is actually wired into
-  `ornekler()`, so a generator that is defined but never sampled fails
-  the test suite instead of silently going unmeasured.
-
-### Changed
-
-- Model-found records now carry `kaynak="model"` instead of the
-  incorrect `kaynak="desen"`; records added by surname propagation carry
-  `kaynak="soyad"`.
-- `ornekler()` now generates nine document types instead of eight
-  (`saglik_raporu` added), 180 documents at the default sample size.
-
-### Fixed
-
-- `saglik_raporu` was defined but never included in `ornekler()`, so the
-  GENETIK special category was never exercised by measurement — the
-  measurement table looked complete while an entire row was silently
-  absent.
+- Added unlabelled names, inflections, bare surnames and everyday-word
+  name controls.
+- Added surname propagation with exclusions for some place suffixes.
+- Findings distinguish model, surname and pattern sources.
+- Included the previously omitted health-report generator in sampling.
 
 ## [0.2.0] - 2026-09-11
 
-### Added
+- Added Ollama thinking and context-window options.
+- Changed the default tag to `huihui_ai/gemma-4-abliterated:12b-qat`.
+- Distinguished an installed-server/missing-model HTTP 404 from a
+  connection failure.
 
-- `OllamaSaglayici` gained `dusunme` (thinking on/off, default off) and
-  `baglam` (context window size) parameters. A model left thinking can
-  consume the entire context window without ever producing an answer —
-  measured: 16384 tokens all spent thinking, `done_reason: length`, empty
-  response; the same prompt with thinking off answered correctly in 1.4
-  seconds. Left unset, Ollama's default context window on the measurement
-  machine was 4096, which silently truncates long documents.
-- Full measurement of the model layer over 140 synthetic documents: AD
-  220/220, ADRES 40/40, KURUM 60/60, all 100% — an upper bound, since the
-  generator places names in predictable labelled slots drawn from a fixed
-  list.
-
-### Changed
-
-- `OllamaSaglayici`'s default model changed from the non-existent
-  `gemma4-abl-16k` to `huihui_ai/gemma-4-abliterated:12b-qat`, picked by
-  measuring three models on the same 21 documents and prompt with thinking
-  disabled:
-
-  | model | AD | KURUM | false positives (of 17 clean) | s/document |
-  |---|---|---|---|---|
-  | gemma-4-abliterated:12b-qat | 100% | 100% | 0 | 1.6 |
-  | qwen3.5-abliterated:9b-q8_0 | 100% | 100% | 6 | 2.5 |
-  | Qwen3.6-abliterated:35b-a3b | 97% | 77.8% | 0 | 3.8 |
-
-### Fixed
-
-- The Ollama 404 path (model not installed) reported "cannot reach
-  Ollama", the same message as an unreachable service, sending users to
-  check the wrong thing.
+Earlier development notes reported local model comparisons and successive
+recall figures, ending at AD 518/520, ADRES 160/160 and KURUM 60/60.
+Those used generated templates and the older type/value scoring rule.
+See [MEASUREMENT.md](MEASUREMENT.md) for how the current evaluation differs;
+the old runs are not an independent accuracy estimate.
 
 ## [0.1.1] - 2026-09-10
 
-### Fixed
-
-- The `saglik` stem added in 0.1.0 matched `sağlıklı` ("sound", "properly"),
-  which is common in Turkish legal prose — "sözleşme sağlıklı biçimde
-  yürütülmüştür" was reported as health data. `saglik` and `hasta` now
-  require a whole-word match, following the existing `din` / `dinlenme`
-  precedent. A separate `sagligi` stem keeps the inflected forms
-  ("sağlığı", "sağlığının") that whole-word matching would otherwise lose
-  to k/ğ softening.
-- Added the affected phrasings to the clean-sentence guard so the
-  regression cannot come back unnoticed.
+- Required whole-word matches for `saglik` and `hasta` to avoid flagging
+  ordinary phrases such as `sağlıklı biçimde`.
+- Added separate inflected health stems and clean-sentence regression cases.
 
 ## [0.1.0] - 2026-09-10
 
-### Added
-
-- Structural identifier detection and masking for TC kimlik no, vergi kimlik
-  no (VKN), IBAN, and card number, each validated with its check digit.
-- Pattern-based detection for phone number, plate number, and e-mail.
-- Context-anchored detection for passport number, date of birth, and SGK
-  registry number, which have no check digit and rely on the preceding
-  label instead of the pattern alone.
-- Separator and OCR tolerance for TC, VKN, and IBAN numbers (e.g.
-  `760 487 647 54`, `76O48764754`), with the check digit re-validated after
-  repair so a correction is never a guess.
-- Reversible masking: consistent placeholders (`<TC_1>`, ...), a local
-  mapping table, and `geri_al` to restore the original text.
-- Re-scan of masked output (`SizintiHatasi`) so a residual leak fails
-  loudly instead of shipping silently.
-- Special-category personal data detection (KVKK md. 6): a dictionary
-  layer flags health, criminal record, union/association membership,
-  religion, ethnicity, biometric, genetic, and other special-category
-  content without attempting to mask it, since the sentence itself is the
-  data.
-- Optional model layer (`Saglayici` protocol, `OllamaSaglayici`) that adds
-  name and address detection and contextual special-category findings on
-  top of the pattern layer; model output not found verbatim in the source
-  text is treated as a hallucination and discarded.
-- Synthetic, labeled Turkish court-document generator (`sentetik.py`)
-  across seven document types, used to measure recall and false-positive
-  rate without using real personal data.
-- Recall and false-positive measurement (`olcum.py`) for both identifier
-  types and special categories.
-- Independent test suite (`test_ozel_nitelikli_bagimsiz.py`) for
-  special-category detection, written apart from `sentetik.py`'s
-  vocabulary.
-- Command-line interface: file or stdin input, `-o` file output,
-  `--esleme` mapping export (opt-in, with an explicit warning),
-  `--sadece-incele`, `--kati` exit code, `--json` report.
-- Zero-install usage via `uvx --from git+...`.
-- README walkthrough of the CLI against a realistic court document.
-
-### Fixed
-
-- stdout/stderr were not forced to UTF-8, so redirecting output on Windows
-  (`kvkk-maskeleme dosya.txt > cikti.txt`) inherited the console code page
-  and corrupted Turkish characters, even though file input and `-o` file
-  output were already explicit UTF-8.
-- The SAGLIK dictionary was missing the bare "sağlık" stem, so the most
-  common Turkish court-document health phrase, "sağlık raporu", was not
-  flagged as special-category data.
-
-### Changed
-
-- Renamed the package from `turkish_anonymizer` to `kvkk-maskeleme` to
-  match its actual legal scope.
-- Documented that measured recall for special-category detection is an
-  upper bound: `olcum.py` measures it against `sentetik.py`'s own
-  generated sentences, which share vocabulary with the detection
-  dictionary rather than being independent of it.
+- Added pattern/check-digit detection for TC, VKN, IBAN and cards;
+  patterns for mobile phone, plate and email; field-label detection for
+  passport, birth date and SGK.
+- Added separator tolerance and limited check-digit-tested OCR repair.
+- Added reversible placeholders, pattern rescanning and optional mapping
+  export.
+- Added dictionary category flags and an optional model provider for
+  names, addresses, organisations and contextual flags.
+- Added labelled generated court-document templates and a measurement
+  report. Clean-control false positives cover category flags only.
+- Added independent category examples, including known misses.
+- Added the CLI with UTF-8 file and stream handling.
+- Renamed the package from `turkish_anonymizer` to `kvkk-maskeleme`.

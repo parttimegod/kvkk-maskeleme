@@ -1,23 +1,7 @@
-"""Bağlam çıpalı tespit.
+"""Pasaport, doğum tarihi ve SGK sicilini hemen önceki etiketle bulur.
 
-Bazı kişisel verilerin kontrol hanesi yok: pasaport numarası, doğum
-tarihi, SGK sicil numarası. Bunlarda desen tek başına yanlış pozitif
-üretir -- "01.01.1990" bir doğum tarihi de olabilir, bir sözleşme
-tarihi de; ayırt eden şey metnin kendisi değil, yanındaki etiket.
-
-Bu yüzden burada değer tek başına aranmıyor. Önce etiket ("Doğum
-Tarihi:", "Pasaport No:") bulunuyor, hemen ardındaki değer alınıyor.
-Etiketsiz geçen aynı değer görmezden geliniyor.
-
-Bilinçli bir eksiklik: etiketsiz yazılmış bir pasaport numarası
-kaçıyor. Alternatifi, belgedeki her tarihi doğum tarihi sanmak olurdu
--- adliye metninde bu, çıktının kullanılamaz hale gelmesi demek.
-
-Pasaport biçimi kaynaklarda tutarsız (bordo U, yeşil S, gri Z ile
-başlıyor; hane sayısı 6-7 arasında değişiyor, eski tip 9 rakam). SGK
-işyeri sicilinin son iki hanesi kontrol numarası ama algoritması
-yayınlanmamış. İkisi de bu yüzden doğrulanmıyor, yalnızca etiketle
-yakalanıyor.
+Kontrol hanesi doğrulaması yapılmaz. Etiket olmadan geçen değerler
+atlanır; desteklenen yazım biçimleri CIPALAR içinde tanımlıdır.
 """
 
 from __future__ import annotations

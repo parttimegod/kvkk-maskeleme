@@ -8,7 +8,7 @@ import json
 
 from kvkk_maskeleme.model import SahteSaglayici
 from kvkk_maskeleme.olcum import MODELE_BAGLI, YAPISAL, calistir, olc
-from kvkk_maskeleme.sentetik import dilekce, ornekler
+from kvkk_maskeleme.sentetik import Belge, Etiket, dilekce, ornekler
 
 
 def test_yapisal_recall_tam():
@@ -51,6 +51,23 @@ def test_kacanlar_kaydediliyor():
 
     assert rapor.turler["AD"].kacan
     assert all(isinstance(k, str) for k in rapor.turler["AD"].kacan)
+
+
+def test_ayni_degerin_her_konumu_ayri_olculuyor():
+    metin = "Doğum tarihi: 12.03.1985; kayıtta 12.03.1985 geçiyor."
+    deger = "12.03.1985"
+    belge = Belge(metin, [
+        Etiket("DOGUM_TARIHI", bas, bas + len(deger), deger)
+        for bas in (metin.index(deger), metin.rindex(deger))
+    ])
+
+    sonuc = olc([belge]).turler["DOGUM_TARIHI"]
+
+    # İkinci geçiş etiketsiz; tespit katmanı yalnızca ilkini buluyor.
+    assert sonuc.beklenen == 2
+    assert sonuc.bulunan == 1
+    assert sonuc.recall == 0.5
+    assert sonuc.kacan == [deger]
 
 
 def test_uydurma_rapora_giriyor():

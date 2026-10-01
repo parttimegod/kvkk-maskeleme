@@ -1,9 +1,7 @@
-"""Small, local HTTP adapter for the deterministic masking layer.
+"""HTTP adapter for pattern masking, with input limits and category flags.
 
-This adapter writes no raw text or reversible mapping to persistent storage
-and does not log request bodies.
-The response deliberately requires manual review: names, addresses, and
-contextual identifiers are outside this endpoint's masking scope.
+Responses omit the restore map. Free-text names and addresses remain;
+every response marks the result for manual review.
 """
 
 from fastapi import FastAPI, Request, Response

@@ -1,21 +1,9 @@
-"""Özel nitelikli kişisel veri tespiti (KVKK md. 6).
+"""Özel nitelikli veri içerebilen ifadeleri kategoriyle işaretler.
 
-Kategoriler kanundan birebir alındı: ırk ve etnik köken, siyasi düşünce,
-felsefi inanç, din ve mezhep, kılık kıyafet, dernek/vakıf/sendika
-üyeliği, sağlık, cinsel hayat, ceza mahkûmiyeti ve güvenlik tedbirleri,
-biyometrik ve genetik veri. Uyum yapan biri çıktıyı doğrudan maddeye
-eşleyebilsin diye kanun terminolojisine sadık kalındı.
-
-Bu katman **maskelemiyor, işaretliyor.** Sebebi şu: özel nitelikli veri
-bir alan değil, bağlamdır. "Sanık uyuşturucu kullanmaktan sabıkalıdır"
-cümlesinde maskelenecek bir alan yok -- cümlenin kendisi veridir.
-Maskelemeye kalkışmak belgeyi anlamsızlaştırır. Doğru davranış, belgenin
-özel nitelikli veri taşıdığını söyleyip kararı insana bırakmak.
-
-Hata dengesi de burada terstir. Tanımlayıcı katmanında yanlış pozitif
-kötüdür; burada yanlış negatif kötüdür. Boşuna işaretlenen belge bir
-insanın birkaç dakikasına mal olur, kaçan belge KVKK ihlaline. Bu yüzden
-sözlük katmanı bilerek cömert tutuldu.
+Kategoriler KVKK madde 6 terminolojisine göre gruplandırılmıştır.
+Sözlük kökleri ve isteğe bağlı model bulguları inceleme ipucudur;
+bir belge hakkında hukuki sınıflandırma veya tam kapsama sağlamaz.
+Bu katman metni maskelemez.
 """
 
 from __future__ import annotations

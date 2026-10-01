@@ -1,19 +1,8 @@
-"""Maskeleme, geri alma ve sızıntı doğrulaması.
-
-İki tasarım kararı burada:
-
-Yer tutucular tutarlı. Aynı kimlik numarası metinde üç kez geçiyorsa
-üçünde de <TC_1> yazıyor. Farklı numaralar farklı numara alıyor. Böylece
-maskelenmiş metin hâlâ okunabiliyor ve "aynı kişi mi" sorusu
-cevaplanabiliyor -- karalama bunu yapamaz.
-
-Çıktı tekrar taranıyor. Maskeleme bittikten sonra metin yeniden tespit
-katmanından geçiyor; bir şey kaldıysa sessizce geçmiyor, hata veriyor.
-Sızıntının sessiz olması, sızıntının kendisinden kötü.
-"""
+"""Tutarlı yer tutucularla maskeleme, desen kontrolü ve geri alma."""
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 
 from .model import Saglayici
@@ -22,7 +11,7 @@ from .tespit import Bulgu, bul
 
 
 class SizintiHatasi(Exception):
-    """Maskeleme sonrası metinde hâlâ kişisel veri var."""
+    """Maskeleme sonrasında desen katmanının tanıdığı bir değer kaldı."""
 
 
 @dataclass
@@ -63,8 +52,8 @@ def maskele(
     saglayici verilirse isim, adres ve kurum için model katmanı da
     çalışır. Verilmezse yalnızca yapısal kimlikler maskelenir.
 
-    dogrula=False yalnızca test içindir. Üretimde kapatma: doğrulama
-    kapalıyken sızıntı sessizce geçer.
+    dogrula, çıktıyı aynı desen katmanıyla yeniden tarar. İsim, adres
+    ve desteklenmeyen biçimler bu kontrolün dışında kalır.
     """
     bulgular = bul(metin)
     uydurma: list[str] = []
@@ -78,11 +67,19 @@ def maskele(
     # Aynı değer her yerde aynı yer tutucuyu alsın.
     yer_tutucu: dict[tuple[str, str], str] = {}
     sayac: dict[str, int] = {}
+    # Önceden maskelenmiş bir metindeki etiketleri yeniden kullanma.
+    mevcut_tutucular = set(re.findall(r"<[A-Z_]+_[0-9]+>", metin))
     for b in bulgular:
         anahtar = (b.tur, b.deger)
         if anahtar not in yer_tutucu:
-            sayac[b.tur] = sayac.get(b.tur, 0) + 1
-            yer_tutucu[anahtar] = f"<{b.tur}_{sayac[b.tur]}>"
+            numara = sayac.get(b.tur, 0) + 1
+            tutucu = f"<{b.tur}_{numara}>"
+            while tutucu in mevcut_tutucular:
+                numara += 1
+                tutucu = f"<{b.tur}_{numara}>"
+            sayac[b.tur] = numara
+            yer_tutucu[anahtar] = tutucu
+            mevcut_tutucular.add(tutucu)
 
     # Sondan başa yürüyoruz ki önceki konumlar kaymasın.
     parcalar = list(metin)
@@ -105,10 +102,10 @@ def maskele(
 
 
 def dogrula_temiz(metin: str) -> None:
-    """Metinde yapısal kişisel veri kalmadığını doğrular.
+    """Desen katmanının tanıdığı değerler kalırsa hata verir.
 
-    Yalnızca desen katmanını kapsıyor. İsim ve adres için aynı güvence
-    yok: doğrulamak ikinci bir model geçişi gerektirir -- bkz. SONRA.md
+    Aynı tespit kodunu kullanır; onun kaçırdığı veriyi bulamaz. Model
+    yeniden çağrılmaz ve hatasız sonuç anonimlik güvencesi vermez.
     """
     kalan = bul(metin)
     if kalan:
@@ -126,6 +123,9 @@ def geri_al(metin: str, eslesme: dict[str, str]) -> str:
     Eşleme dosyası kişisel veri içerir; metinle birlikte hiçbir yere
     gönderilmemeli.
     """
-    for tutucu, deger in eslesme.items():
-        metin = metin.replace(tutucu, deger)
-    return metin
+    if not eslesme:
+        return metin
+    # Geri gelen değer başka bir yer tutucu içerebilir. Tek geçişte
+    # değiştirerek o değerin tekrar işlenmesini önlüyoruz.
+    desen = "|".join(re.escape(t) for t in sorted(eslesme, key=len, reverse=True))
+    return re.sub(desen, lambda m: eslesme[m.group()], metin)
