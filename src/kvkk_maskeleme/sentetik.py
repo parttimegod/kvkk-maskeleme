@@ -1,17 +1,8 @@
-"""Sentetik Türkçe belge üreteci.
+"""Tespit testleri için etiketli, sentetik Türkçe belgeler üretir.
 
-Bu araç gerçek belgeyle test edilemez. Kişisel veri içeren bir metni
-geliştirme sırasında kullanmak, aracın önlemeye çalıştığı ihlalin ta
-kendisi olur. O yüzden test verisini üretiyoruz.
-
-İkinci işlevi ölçüm: nerede hangi kişisel verinin olduğunu bildiğimiz
-için tespit oranını (recall) hesaplayabiliyoruz. Etiketli veri olmadan
-"bu araç ne kadar iyi" sorusunun cevabı yok.
-
-Üretilen kimlik numaraları kontrol hanesi bakımından geçerli, yani
-tespit mantığını gerçekten sınıyorlar. Geçerli olmaları gerçek bir
-kişiye ait olmadıkları anlamına gelmez -- bu numaralar yalnızca tespit
-testi içindir, kimseyi temsil etmezler.
+Kimlik numaralarının kontrol haneleri geçerlidir; gerçek kayıtlardan
+alınmazlar. Üretilmiş bir numaranın gerçek bir kayıtla çakışması
+dışlanmaz. Bu değerler yalnızca test verisi olarak kullanılmalıdır.
 """
 
 from __future__ import annotations

@@ -44,6 +44,23 @@ def test_geri_alinca_ozgun_metne_donuyor():
         assert geri_al(sonuc.metin, sonuc.eslesme) == belge.metin
 
 
+def test_girdideki_yer_tutucular_korunuyor():
+    metin = "Eski: <TELEFON_1> <TELEFON_2>; yeni: 0532 000 00 00."
+    sonuc = maskele(metin)
+
+    assert sonuc.metin == "Eski: <TELEFON_1> <TELEFON_2>; yeni: <TELEFON_3>."
+    assert sonuc.eslesme == {"<TELEFON_3>": "0532 000 00 00"}
+    assert geri_al(sonuc.metin, sonuc.eslesme) == metin
+
+
+def test_geri_al_yeni_gelen_degeri_tekrar_degistirmiyor():
+    eslesme = {"<AD_1>": "Özgün <TC_1> ifadesi", "<TC_1>": "12345678901"}
+
+    assert geri_al("<AD_1>; <TC_1>", eslesme) == (
+        "Özgün <TC_1> ifadesi; 12345678901"
+    )
+
+
 def test_maskeleme_metnin_geri_kalanini_bozmuyor():
     belge = dilekce(0)
     sonuc = maskele(belge.metin)

@@ -1,18 +1,7 @@
-"""Ölçüm.
+"""Tanımlayıcıları tam konumla, özel nitelikli veriyi kategoriyle ölçer.
 
-Bu alandaki açık kaynak projelerin hiçbiri ne kadar iyi çalıştığını
-söylemiyor. "Kişisel verileri maskeler" cümlesi ölçülmeden bir şey ifade
-etmiyor; %60 recall'la çalışan bir araç çalışmıyor demektir.
-
-Üç şey ölçülüyor:
-
-1. Tanımlayıcı recall'ı -- maskelenmesi gereken kaç veri maskelendi
-2. Özel nitelikli recall'ı -- işaretlenmesi gereken kaç belge işaretlendi
-3. Yanlış pozitif -- temiz metinde kaç kez boşuna işaretlendi
-
-Üçüncüsü ayrı duruyor çünkü özel nitelikli katmanı bilerek cömert. Cömert
-olmanın bedeli ölçülmezse "cömert" ile "gürültülü" arasındaki fark
-kaybolur.
+Temiz metinlerdeki yanlış pozitif sayımı yalnızca özel nitelikli veri
+katmanını kapsar. Tanımlayıcı precision'ı burada ölçülmez.
 """
 
 from __future__ import annotations
@@ -105,7 +94,9 @@ def _tanimlayici_olc(
 
     for belge in belgeler:
         sonuc = maskele(belge.metin, dogrula=False, saglayici=saglayici)
-        bulunan = {(b.tur, b.deger) for b in sonuc.bulgular}
+        bulunan = {
+            (b.tur, b.baslangic, b.bitis, b.deger) for b in sonuc.bulgular
+        }
         rapor.uydurma.extend(sonuc.uydurma)
         rapor.bicim_hatasi += int(sonuc.model_bicim_hatasi)
 
@@ -114,7 +105,7 @@ def _tanimlayici_olc(
                 continue
             s = rapor.turler.setdefault(e.tur, TurSonucu())
             s.beklenen += 1
-            if (e.tur, e.deger) in bulunan:
+            if (e.tur, e.baslangic, e.bitis, e.deger) in bulunan:
                 s.bulunan += 1
             else:
                 s.kacan.append(e.deger)
@@ -159,9 +150,8 @@ def olc(
 ) -> Rapor:
     """Etiketli belgelerde tespit oranını, temiz metinde yanlış pozitifi ölçer.
 
-    saglayici verilmezse isim ve adres değerlendirmeye alınmıyor; desen
-    katmanının onları bulması zaten beklenmiyor, ölçüme katmak sonucu
-    haksız yere düşürür.
+    Sağlayıcı yokken AD, ADRES ve KURUM kapsam dışıdır. Sonuçlar yalnızca
+    verilen etiketli kümenin başarımını gösterir.
     """
     rapor = Rapor(belge_sayisi=len(belgeler))
     _tanimlayici_olc(rapor, belgeler, saglayici)

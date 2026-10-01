@@ -1,23 +1,11 @@
-"""Deterministik tespit katmanı.
+"""Desenler, kontrol haneleri ve bağlam etiketleriyle tanımlayıcı bulur.
 
-Yapısal kimlikleri bulur: TC kimlik, VKN, IBAN, telefon, plaka, e-posta,
-kart numarası. Hepsi desen + doğrulama ikilisiyle çalışıyor.
+TC, VKN, IBAN ve kart adayları kontrol hanesiyle sınanır; telefon,
+e-posta ve plaka için böyle bir doğrulama yoktur. Kontrol hanesinin
+tutması, değerin gerçek bir kişiye tahsis edildiğini kanıtlamaz.
 
-Doğrulama olmadan desen tek başına işe yaramaz. "11 haneli sayı" deseni
-dosya numarasını, tarih dizisini, tutar alanını da yakalar. Kontrol
-hanesi bunları eler.
-
-Gerçek belgeler temiz yazılmıyor. İnsanlar kimlik numarasını boşlukla,
-noktayla, tireyle yazıyor; taranmış belgelerde OCR harfle rakamı
-karıştırıyor. Bu yüzden iki tolerans katmanı var:
-
-- Ayraç toleransı: rakamlar arasındaki tek boşluk/nokta/tire yok sayılır.
-- OCR onarımı: harfe benzeyen rakamlar (O/0, l/1, S/5) denenir, ama
-  onarılmış hâl kontrol hanesinden geçmezse kabul edilmez. Tahmin değil,
-  doğrulanmış onarım.
-
-İsim ve adres burada YOK. Onlar desenle bulunamıyor, model katmanının
-işi -- bkz. model.py
+TC ve VKN için sınırlı OCR onarımı uygulanır. İsim ve serbest yazılmış
+adresler bu katmanın kapsamında değildir.
 """
 
 from __future__ import annotations
